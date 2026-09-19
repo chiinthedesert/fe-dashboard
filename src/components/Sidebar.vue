@@ -6,22 +6,19 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
-  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarProvider,
   SidebarRail,
-  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
+const { setOpenMobile } = useSidebar();
 
-import {
-  Activity,
-  UserRound,
-  BriefcaseBusiness,
-  ShieldUser,
-} from "lucide-vue-next";
+import { Activity, Users, Handshake, ShieldUser } from "lucide-vue-next";
 import sotatekIcon from "@/assets/sotatekIcon.png";
+
+import { RouterLink, useRoute } from "vue-router";
+const route = useRoute();
 
 interface Admin {
   name: string;
@@ -35,104 +32,100 @@ const currentAdmin: Admin = {
 </script>
 
 <template>
-  <SidebarProvider>
-    <Sidebar>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" class="p-0">
-              <div
-                class="flex aspect-square size-10 overflow-hidden items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+  <Sidebar>
+    <SidebarHeader>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" class="p-0">
+            <div
+              class="flex aspect-square size-10 overflow-hidden items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+            >
+              <img
+                :src="sotatekIcon"
+                alt="Python Master"
+                class="size-full object-cover"
+              />
+            </div>
+            <div class="grid flex-1 text-left leading-tight">
+              <span class="truncate font-semibold text-lg">Python Master</span>
+              <span class="truncate text-xs text-muted-foreground"
+                >HỆ THỐNG VẬN HÀNH</span
               >
-                <img
-                  :src="sotatekIcon"
-                  alt="Python Master"
-                  class="size-full object-cover"
-                />
-              </div>
-              <div class="grid flex-1 text-left leading-tight">
-                <span class="truncate font-semibold text-lg"
-                  >Python Master</span
-                >
-                <span class="truncate text-xs">HỆ THỐNG VẬN HÀNH</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem class="">
-                <SidebarMenuButton as-child>
-                  <a href="#">
-                    <Activity />
-                    <span>Dashboard Vận Hành</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton as-child>
-                  <a href="#">
-                    <UserRound />
-                    <span>Quản Lý Thí Sinh</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton as-child>
-                  <a href="#">
-                    <BriefcaseBusiness />
-                    <span>Quản Lý Đối Tác</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" class="p-0">
-              <div
-                class="flex aspect-square size-10 overflow-hidden items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground"
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarHeader>
+    <SidebarContent>
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as-child
+                :is-active="
+                  route.name === 'dashboard' ||
+                  route.path.startsWith('/dashboard/')
+                "
+                @click="setOpenMobile(false)"
               >
-                <ShieldUser />
-              </div>
-              <div class="grid flex-1 text-left leading-tight">
-                <span class="truncate font-semibold">{{
-                  currentAdmin.name
-                }}</span>
-                <span class="truncate text-xs">{{
-                  currentAdmin.department
-                }}</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
-    <SidebarInset>
-      <header
-        class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
-      >
-        <div class="flex items-center gap-2 px-4">
-          <SidebarTrigger class="-ml-1" />
-        </div>
-      </header>
-      <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-          <div class="aspect-video rounded-xl bg-muted/50" />
-          <div class="aspect-video rounded-xl bg-muted/50" />
-          <div class="aspect-video rounded-xl bg-muted/50" />
-        </div>
-        <div class="min-h-screen flex-1 rounded-xl bg-muted/50 md:min-h-min" />
-      </div>
-    </SidebarInset>
-  </SidebarProvider>
+                <RouterLink to="/dashboard">
+                  <Activity />
+                  <span>Dashboard Vận Hành</span>
+                </RouterLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as-child
+                :is-active="route.name === 'candidates'"
+                @click="setOpenMobile(false)"
+              >
+                <RouterLink to="/candidates">
+                  <Users />
+                  <span>Quản Lý Thí Sinh</span>
+                </RouterLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as-child
+                :is-active="route.name === 'partners'"
+                @click="setOpenMobile(false)"
+              >
+                <RouterLink to="/partners">
+                  <Handshake />
+                  <span>Quản Lý Đối Tác</span>
+                </RouterLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </SidebarContent>
+    <SidebarFooter>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" class="p-0">
+            <div
+              class="flex aspect-square size-10 overflow-hidden items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground"
+            >
+              <ShieldUser />
+            </div>
+            <div class="grid flex-1 text-left leading-tight">
+              <span class="truncate font-semibold">{{
+                currentAdmin.name
+              }}</span>
+              <span class="truncate text-xs text-muted-foreground">{{
+                currentAdmin.department
+              }}</span>
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarFooter>
+    <SidebarRail />
+  </Sidebar>
 </template>
