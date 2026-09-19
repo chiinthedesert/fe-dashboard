@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Sidebar from "@/components/Sidebar.vue";
+import AppSidebar from "@/components/AppSidebar.vue";
 import { computed } from "vue";
 import { RouterView, useRoute } from "vue-router";
 
@@ -25,7 +25,7 @@ const pageDescription = computed(() =>
 
 <template>
   <SidebarProvider>
-    <Sidebar />
+    <AppSidebar />
     <SidebarInset>
       <header
         class="flex min-h-16 shrink-0 items-center gap-3 border-b px-4 py-2"

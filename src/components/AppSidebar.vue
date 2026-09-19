@@ -12,16 +12,36 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Activity,
+  Users,
+  Handshake,
+  ShieldUser,
+  LogOut,
+  ChevronsUpDown,
+} from "lucide-vue-next";
+import sotatekIcon from "@/assets/sotatekIcon.png";
 const { setOpenMobile } = useSidebar();
 
-import { Activity, Users, Handshake, ShieldUser } from "lucide-vue-next";
-import sotatekIcon from "@/assets/sotatekIcon.png";
-
-import { RouterLink, useRoute } from "vue-router";
-const route = useRoute();
-
 import { useAuth } from "@/composables/useAuth";
-const { currentAdmin } = useAuth();
+
+import { RouterLink, useRoute, useRouter } from "vue-router";
+const route = useRoute();
+const router = useRouter();
+
+const { currentAdmin, logout } = useAuth();
+
+async function handleLogout() {
+  logout();
+  setOpenMobile(false);
+  await router.replace("/login");
+}
 </script>
 
 <template>
@@ -98,24 +118,64 @@ const { currentAdmin } = useAuth();
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
+    <!-- <SidebarFooter> -->
+    <!--   <SidebarMenu> -->
+    <!--     <SidebarMenuItem> -->
+    <!--       <SidebarMenuButton size="lg" class="p-0"> -->
+    <!--         <div -->
+    <!--           class="flex aspect-square size-10 overflow-hidden items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground" -->
+    <!--         > -->
+    <!--           <ShieldUser /> -->
+    <!--         </div> -->
+    <!--         <div class="grid flex-1 text-left leading-tight"> -->
+    <!--           <span class="truncate font-semibold"> -->
+    <!--             {{ currentAdmin?.name }} -->
+    <!--           </span> -->
+    <!--           <span class="truncate text-xs text-muted-foreground"> -->
+    <!--             {{ currentAdmin?.department }} -->
+    <!--           </span> -->
+    <!--         </div> -->
+    <!--       </SidebarMenuButton> -->
+    <!--     </SidebarMenuItem> -->
+    <!--   </SidebarMenu> -->
+    <!-- </SidebarFooter> -->
     <SidebarFooter>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" class="p-0">
-            <div
-              class="flex aspect-square size-10 overflow-hidden items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground"
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <SidebarMenuButton size="lg" class="p-0">
+                <div
+                  class="flex aspect-square size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sidebar-primary text-sidebar-primary-foreground"
+                >
+                  <ShieldUser />
+                </div>
+
+                <div class="grid min-w-0 flex-1 text-left leading-tight">
+                  <span class="truncate font-semibold">
+                    {{ currentAdmin?.name }}
+                  </span>
+                  <span class="truncate text-xs text-muted-foreground">
+                    {{ currentAdmin?.department }}
+                  </span>
+                </div>
+
+                <ChevronsUpDown class="ml-auto size-6 shrink-0" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+              side="top"
+              align="start"
+              :side-offset="8"
+              class="w-(--reka-dropdown-menu-trigger-width)"
             >
-              <ShieldUser />
-            </div>
-            <div class="grid flex-1 text-left leading-tight">
-              <span class="truncate font-semibold">
-                {{ currentAdmin?.name }}
-              </span>
-              <span class="truncate text-xs text-muted-foreground">
-                {{ currentAdmin?.department }}
-              </span>
-            </div>
-          </SidebarMenuButton>
+              <DropdownMenuItem @select="handleLogout">
+                <LogOut class="size-4" />
+                <span>Đăng xuất</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarFooter>
