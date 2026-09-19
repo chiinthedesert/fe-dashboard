@@ -20,15 +20,8 @@ import sotatekIcon from "@/assets/sotatekIcon.png";
 import { RouterLink, useRoute } from "vue-router";
 const route = useRoute();
 
-interface Admin {
-  name: string;
-  department: string;
-}
-
-const currentAdmin: Admin = {
-  name: "Nguyễn Văn A",
-  department: "Phòng vận hành",
-};
+import { useAuth } from "@/composables/useAuth";
+const { currentAdmin } = useAuth();
 </script>
 
 <template>
@@ -115,12 +108,12 @@ const currentAdmin: Admin = {
               <ShieldUser />
             </div>
             <div class="grid flex-1 text-left leading-tight">
-              <span class="truncate font-semibold">{{
-                currentAdmin.name
-              }}</span>
-              <span class="truncate text-xs text-muted-foreground">{{
-                currentAdmin.department
-              }}</span>
+              <span class="truncate font-semibold">
+                {{ currentAdmin?.name }}
+              </span>
+              <span class="truncate text-xs text-muted-foreground">
+                {{ currentAdmin?.department }}
+              </span>
             </div>
           </SidebarMenuButton>
         </SidebarMenuItem>
