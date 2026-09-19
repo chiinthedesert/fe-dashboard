@@ -6,11 +6,19 @@ import {
 import DashboardView from "@/views/DashboardView.vue"
 import CandidatesView from "@/views/CandidatesView.vue"
 import PartnersView from "@/views/PartnersView.vue"
+import LoginView from "@/views/LoginView.vue"
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
 
   routes: [
+    {
+      path: "/login",
+      name: "login",
+      component: LoginView,
+      meta: {
+      },
+    },
     {
       path: "/",
       redirect: "/dashboard",

@@ -24,9 +24,10 @@ const pageDescription = computed(() =>
 </script>
 
 <template>
-  <SidebarProvider>
-    <Sidebar />
+  <RouterView v-if="route.name === 'login'" />
 
+  <SidebarProvider v-else>
+    <Sidebar />
     <SidebarInset>
       <header
         class="flex min-h-16 shrink-0 items-center gap-3 border-b px-4 py-2"
