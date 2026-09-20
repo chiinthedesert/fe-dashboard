@@ -4,6 +4,7 @@ import OverviewCards from "@/components/dashboard/OverviewCards.vue";
 import RegisChart from "@/components/dashboard/RegisChart.vue";
 import ConversionChart from "@/components/dashboard/ConversionChart.vue";
 </script>
+
 <template>
   <section>
     <Filter />

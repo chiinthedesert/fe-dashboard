@@ -5,20 +5,10 @@ import { Download, TriangleAlert } from "lucide-vue-next";
 interface School {
   name: string;
   region: string;
-
-  // Số lượng còn thiếu so với mục tiêu tuần
   missingTarget: number;
-
   conversionRate: number;
-
-  // Số ngày quá hạn
   overdueDays: number;
 }
-
-/* =========================================================
-   DỮ LIỆU TRƯỜNG HỌC
-   Mock data
-   ========================================================= */
 
 const schoolData = ref<School[]>([
   {
@@ -93,55 +83,29 @@ const schoolData = ref<School[]>([
   },
 ]);
 
-/* =========================================================
-   XẾP HẠNG TRƯỜNG
-   Sắp xếp theo số lượng còn thiếu mục tiêu giảm dần
-   ========================================================= */
-
 const rankedSchools = computed(() => {
   return [...schoolData.value]
-    .sort(
-      (a, b) =>
-        b.missingTarget - a.missingTarget,
-    )
+    .sort((a, b) => b.missingTarget - a.missingTarget)
     .slice(0, 10);
 });
 
-/* =========================================================
-   XUẤT BÁO CÁO
-   ========================================================= */
-
 function exportExcel() {
-  // TODO:
-  // Thay bằng API export Excel khi backend có endpoint.
   console.log("Export báo cáo Excel");
 }
 </script>
 
 <template>
-  <div
-    class="min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
-  >
-    <!-- =====================================================
-         HEADER
-         ===================================================== -->
-
+  <div class="min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6">
     <div class="mb-5 flex items-start justify-between gap-4">
       <div class="min-w-0">
-        <h3
-          class="text-[16px] font-semibold leading-6 text-[#F8FAFC]"
-        >
+        <h3 class="text-[16px] font-semibold leading-6 text-[#F8FAFC]">
           Trường học cần thúc đẩy
         </h3>
 
-        <p
-          class="mt-1 text-[13px] font-normal leading-[18px] text-[#8B93A7]"
-        >
+        <p class="mt-1 text-[13px] font-normal leading-[18px] text-[#8B93A7]">
           Xếp hạng theo số lượng còn thiếu so với mục tiêu đăng ký trong tuần
         </p>
       </div>
-
-      <!-- Xuất báo cáo -->
 
       <button
         type="button"
@@ -149,80 +113,35 @@ function exportExcel() {
         @click="exportExcel"
       >
         <Download class="h-4 w-4" />
-        <span class="hidden sm:inline">
-          Xuất báo cáo
-        </span>
-        <span class="sm:hidden">
-          Xuất
-        </span>
+        <span class="hidden sm:inline">Xuất báo cáo</span>
+        <span class="sm:hidden">Xuất</span>
       </button>
     </div>
 
-    <!-- =====================================================
-         TABLE
-         ===================================================== -->
-
     <div class="min-w-0 overflow-x-auto">
       <table class="w-full min-w-[900px] border-collapse">
-        <!-- =================================================
-             TABLE HEADER
-             ================================================= -->
-
         <thead>
           <tr class="bg-[#1D2233]">
-            <!-- STT -->
-
-            <th
-              class="w-[48px] rounded-l-md px-3 py-3 text-center text-[13px] font-medium leading-[18px] text-[#8B93A7]"
-            >
+            <th class="w-[48px] rounded-l-md px-3 py-3 text-center text-[13px] font-medium leading-[18px] text-[#8B93A7]">
               #
             </th>
-
-            <!-- TRƯỜNG -->
-
-            <th
-              class="px-4 py-3 text-left text-[13px] font-medium leading-[18px] text-[#8B93A7]"
-            >
+            <th class="px-4 py-3 text-left text-[13px] font-medium leading-[18px] text-[#8B93A7]">
               Trường
             </th>
-
-            <!-- KHU VỰC -->
-
-            <th
-              class="px-4 py-3 text-left text-[13px] font-medium leading-[18px] text-[#8B93A7]"
-            >
+            <th class="px-4 py-3 text-left text-[13px] font-medium leading-[18px] text-[#8B93A7]">
               Khu vực
             </th>
-
-            <!-- THIẾU MỤC TIÊU -->
-
-            <th
-              class="px-4 py-3 text-center text-[13px] font-medium leading-[18px] text-[#8B93A7]"
-            >
+            <th class="px-4 py-3 text-center text-[13px] font-medium leading-[18px] text-[#8B93A7]">
               Thiếu mục tiêu tuần
             </th>
-
-            <!-- TỈ LỆ CHUYỂN ĐỔI -->
-
-            <th
-              class="px-4 py-3 text-center text-[13px] font-medium leading-[18px] text-[#8B93A7]"
-            >
+            <th class="px-4 py-3 text-center text-[13px] font-medium leading-[18px] text-[#8B93A7]">
               Tỷ lệ chuyển đổi
             </th>
-
-            <!-- QUÁ HẠN -->
-
-            <th
-              class="rounded-r-md px-4 py-3 text-center text-[13px] font-medium leading-[18px] text-[#8B93A7]"
-            >
+            <th class="rounded-r-md px-4 py-3 text-center text-[13px] font-medium leading-[18px] text-[#8B93A7]">
               Quá hạn (ngày)
             </th>
           </tr>
         </thead>
-
-        <!-- =================================================
-             TABLE BODY
-             ================================================= -->
 
         <tbody>
           <tr
@@ -230,67 +149,37 @@ function exportExcel() {
             :key="school.name"
             class="border-b border-[#232838] last:border-b-0"
           >
-            <!-- STT -->
-
-            <td
-              class="px-3 py-3.5 text-center"
-            >
-              <span
-                class="text-[13px] font-normal leading-[18px] text-[#8B93A7]"
-              >
+            <td class="px-3 py-3.5 text-center">
+              <span class="text-[13px] font-normal leading-[18px] text-[#8B93A7]">
                 {{ index + 1 }}
               </span>
             </td>
 
-            <!-- TRƯỜNG -->
-
             <td class="px-4 py-3.5">
-              <span
-                class="text-[14px] font-semibold leading-5 text-[#F8FAFC]"
-              >
+              <span class="text-[14px] font-semibold leading-5 text-[#F8FAFC]">
                 {{ school.name }}
               </span>
             </td>
 
-            <!-- KHU VỰC -->
-
             <td class="px-4 py-3.5">
-              <span
-                class="inline-flex rounded-md bg-[#31245F] px-2 py-1 text-[12px] font-medium leading-4 text-[#8B5CF6]"
-              >
+              <span class="inline-flex rounded-md bg-[#31245F] px-2 py-1 text-[12px] font-medium leading-4 text-[#8B5CF6]">
                 {{ school.region }}
               </span>
             </td>
 
-            <!-- THIẾU MỤC TIÊU -->
-
-            <td
-              class="px-4 py-3.5 text-center"
-            >
-              <span
-                class="text-[13px] font-semibold leading-[18px] text-[#FB7185]"
-              >
+            <td class="px-4 py-3.5 text-center">
+              <span class="text-[13px] font-semibold leading-[18px] text-[#FB7185]">
                 {{ school.missingTarget.toLocaleString("vi-VN") }}
               </span>
             </td>
 
-            <!-- TỈ LỆ CHUYỂN ĐỔI -->
-
-            <td
-              class="px-4 py-3.5 text-center"
-            >
-              <span
-                class="text-[13px] font-semibold leading-[18px] text-[#34D399]"
-              >
+            <td class="px-4 py-3.5 text-center">
+              <span class="text-[13px] font-semibold leading-[18px] text-[#34D399]">
                 {{ school.conversionRate }}%
               </span>
             </td>
 
-            <!-- QUÁ HẠN -->
-
-            <td
-              class="px-4 py-3.5 text-center"
-            >
+            <td class="px-4 py-3.5 text-center">
               <span
                 v-if="school.overdueDays > 0"
                 class="inline-flex items-center justify-center gap-1 text-[13px] font-medium leading-[18px] text-[#FB7185]"
@@ -299,10 +188,7 @@ function exportExcel() {
                 {{ school.overdueDays }}
               </span>
 
-              <span
-                v-else
-                class="text-[13px] font-medium leading-[18px] text-[#8B93A7]"
-              >
+              <span v-else class="text-[13px] font-medium leading-[18px] text-[#8B93A7]">
                 —
               </span>
             </td>

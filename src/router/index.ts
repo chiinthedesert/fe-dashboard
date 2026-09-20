@@ -82,7 +82,7 @@ const router = createRouter({
           name: "partners",
           component: PartnersView,
           meta: {
-            title: "Quản lý Đối tác",
+            title: "Quản lý Đối Tác",
             description:
               "Theo dõi hợp tác và tài trợ cho cuộc thi Python Master",
           },

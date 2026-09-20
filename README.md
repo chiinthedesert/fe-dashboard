@@ -79,3 +79,21 @@ http://localhost:5173
 ```
 
 Giữ terminal này hoạt động trong thời gian phát triển. Nhấn `Ctrl+C` để dừng server.
+
+## Cấu hình API doanh thu
+
+Màn hình Dashboard > Tổng quan gọi API `GET /api/v1/thong-ke/doanh-thu` theo API contract của Backend.
+
+Tạo file `.env` từ `.env.example` nếu cần đổi địa chỉ backend:
+
+```env
+VITE_API_BASE_URL=https://api.pythonmaster.vn
+```
+
+Token đăng nhập được đọc từ `localStorage` với key `access_token` và gửi dưới dạng:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+API hỗ trợ hai bộ lọc tùy chọn `start_date` và `end_date` theo định dạng `YYYY-MM-DD`. Lỗi `400` và `401` được hiển thị trực tiếp trên màn hình để người dùng xử lý.

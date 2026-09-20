@@ -61,9 +61,7 @@ async function handleLogout() {
             </div>
             <div class="grid flex-1 text-left leading-tight">
               <span class="truncate font-semibold text-lg">Python Master</span>
-              <span class="truncate text-xs text-muted-foreground"
-                >HỆ THỐNG VẬN HÀNH</span
-              >
+              <span class="truncate text-xs text-muted-foreground">Ban tổ chức</span>
             </div>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -101,6 +99,7 @@ async function handleLogout() {
                 </RouterLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
+
 
             <SidebarMenuItem>
               <SidebarMenuButton
