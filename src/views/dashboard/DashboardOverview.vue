@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import Filter from "@/components/ui/filter/Filter.vue";
-import OverviewCards from "@/components/OverviewCards.vue";
-import RegisChart from "@/components/RegisChart.vue";
-import ConversionChart from "@/components/ConversionChart.vue";
+import OverviewCards from "@/components/dashboard/OverviewCards.vue";
+import RegisChart from "@/components/dashboard/RegisChart.vue";
+import ConversionChart from "@/components/dashboard/ConversionChart.vue";
 </script>
 <template>
   <section>

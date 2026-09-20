@@ -1,11 +1,13 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref } from "vue";
+
+import PartnersTable from "@/components/partners/PartnersTable.vue";
+import { mockPartners } from "@/mocks/partners";
+import type { Partner } from "@/types/partner";
+
+const partners = ref<Partner[]>(structuredClone(mockPartners));
+</script>
 
 <template>
-  <div>
-    <h2 class="text-xl font-semibold">Danh sách đối tác</h2>
-
-    <p class="mt-1 text-sm text-muted-foreground">
-      Nội dung quản lý đối tác sẽ được xây dựng tại đây.
-    </p>
-  </div>
+  <PartnersTable :partners="partners" />
 </template>
