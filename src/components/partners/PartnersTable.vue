@@ -89,16 +89,6 @@ const filteredPartners = computed(() => {
   });
 });
 
-// Column labels
-const columnLabels: Record<string, string> = {
-  name: "Tên đơn vị",
-  type: "Phân loại",
-  contactName: "Người liên hệ",
-  email: "Email",
-  phone: "Số điện thoại",
-  notes: "Ghi chú",
-};
-
 // Table features
 const features = tableFeatures({
   columnVisibilityFeature,
@@ -189,7 +179,7 @@ function changePageSize(size: number) {
   <Card class="min-w-0 w-full gap-4 py-4">
     <!-- Card header -->
     <CardHeader class="px-4">
-      <CardTitle> Danh sách đối tác và doanh nghiệp </CardTitle>
+      <CardTitle>Danh sách đối tác và doanh nghiệp</CardTitle>
 
       <CardDescription>
         Quản lý đơn vị phối hợp, tài trợ và các đầu mối liên hệ của cuộc thi.
@@ -198,7 +188,6 @@ function changePageSize(size: number) {
 
     <CardContent class="min-w-0 space-y-4 px-4">
       <!-- Search, filter and actions -->
-
       <div
         class="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-[minmax(12rem,20rem)_10rem_auto_minmax(0,1fr)_auto] lg:items-center"
       >
@@ -255,7 +244,7 @@ function changePageSize(size: number) {
               @update:model-value="(value) => column.toggleVisibility(!!value)"
               @select.prevent
             >
-              {{ columnLabels[column.id] ?? column.id }}
+              {{ column.columnDef.header }}
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -286,7 +275,6 @@ function changePageSize(size: number) {
                 class="h-auto whitespace-normal px-3 py-2 text-left"
                 :class="{
                   'min-w-36': header.column.id === 'notes',
-                  'min-w-24': header.column.id === 'email',
                 }"
               >
                 <FlexRender
@@ -309,16 +297,9 @@ function changePageSize(size: number) {
                   v-for="cell in row.getVisibleCells()"
                   :key="cell.id"
                   class="px-3 py-3 whitespace-normal"
-                  :class="{
-                    'wrap-anywhere':
-                      cell.column.id === 'email' || cell.column.id === 'phone',
-                  }"
                 >
                   <!-- Partner name -->
-                  <span
-                    v-if="cell.column.id === 'name'"
-                    class="whitespace-normal font-medium"
-                  >
+                  <span v-if="cell.column.id === 'name'" class="font-medium">
                     {{ row.original.name }}
                   </span>
 
@@ -331,34 +312,10 @@ function changePageSize(size: number) {
                     {{ row.original.type }}
                   </Badge>
 
-                  <!-- Contact name -->
-                  <span
-                    v-else-if="cell.column.id === 'contactName'"
-                    class="whitespace-normal"
-                  >
-                    {{ row.original.contactName }}
-                  </span>
-
-                  <!-- Email -->
-                  <span
-                    v-else-if="cell.column.id === 'email'"
-                    class="whitespace-normal wrap-anywhere text-muted-foreground"
-                  >
-                    {{ row.original.email }}
-                  </span>
-
-                  <!-- Phone -->
-                  <span
-                    v-else-if="cell.column.id === 'phone'"
-                    class="whitespace-normal wrap-anywhere text-muted-foreground"
-                  >
-                    {{ row.original.phone }}
-                  </span>
-
                   <!-- Notes -->
                   <span
                     v-else-if="cell.column.id === 'notes'"
-                    class="whitespace-normal text-muted-foreground"
+                    class="text-muted-foreground"
                   >
                     {{ row.original.notes || "—" }}
                   </span>
@@ -391,6 +348,18 @@ function changePageSize(size: number) {
                       <Trash2 class="size-4" />
                     </Button>
                   </div>
+
+                  <!-- Other columns -->
+                  <span
+                    v-else
+                    :class="{
+                      'text-muted-foreground':
+                        cell.column.id === 'email' ||
+                        cell.column.id === 'phone',
+                    }"
+                  >
+                    {{ cell.getValue() }}
+                  </span>
                 </TableCell>
               </TableRow>
             </template>
