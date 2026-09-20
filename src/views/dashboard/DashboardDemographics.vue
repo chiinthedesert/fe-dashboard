@@ -32,25 +32,24 @@ const examColors = [
 
 /* =========================================================
    DỮ LIỆU ĐỘ TUỔI
-   Mock data hiện tại.
-   Sau này API có thể gán vào ageData.value
    ========================================================= */
 
 const ageData = ref([
   {
-    label: "8 - 11 tuổi",
-    value: 4820,
-    className: "bg-[#7C5CFC]",
+    label: "Dưới 15",
+    value: 2900,
   },
   {
-    label: "12 - 15 tuổi",
+    label: "15 - 17",
     value: 6150,
-    className: "bg-[#22D3EE]",
   },
   {
-    label: "16 - 18 tuổi",
-    value: 4872,
-    className: "bg-[#34D399]",
+    label: "18 - 20",
+    value: 3800,
+  },
+  {
+    label: "Trên 20",
+    value: 1800,
   },
 ]);
 
@@ -126,12 +125,54 @@ const maxAgeValue = computed(() => {
   );
 });
 
+/* =========================================================
+   MỐC TRỤC Y
+   ========================================================= */
+
+const ageChartMax = computed(() => {
+  const max = maxAgeValue.value;
+
+  if (max === 0) {
+    return 0;
+  }
+
+  return Math.ceil(max / 1000) * 1000;
+});
+
+const ageChartTicks = computed(() => {
+  const max = ageChartMax.value;
+
+  if (max === 0) {
+    return [0, 0, 0, 0, 0];
+  }
+
+  return [
+    max,
+    max * 0.75,
+    max * 0.5,
+    max * 0.25,
+    0,
+  ];
+});
+
+/* =========================================================
+   CHIỀU CAO CỘT
+   ========================================================= */
+
 function getBarHeight(value: number) {
-  if (maxAgeValue.value === 0) {
+  if (ageChartMax.value === 0) {
     return "0%";
   }
 
-  return `${(value / maxAgeValue.value) * 100}%`;
+  return `${(value / ageChartMax.value) * 100}%`;
+}
+
+/* =========================================================
+   FORMAT TRỤC Y
+   ========================================================= */
+
+function formatAgeTick(value: number) {
+  return value.toLocaleString("vi-VN");
 }
 </script>
 
@@ -291,59 +332,87 @@ function getBarHeight(value: number) {
         <h3
           class="text-[16px] font-semibold leading-6 text-[#F8FAFC]"
         >
-          Phân bố độ tuổi
+          Phân bố theo nhóm tuổi
         </h3>
 
         <p
           class="mt-1 text-[13px] font-normal leading-[18px] text-[#8B93A7]"
         >
-          Phân bố thí sinh theo nhóm tuổi
+          Số lượng thí sinh đăng ký theo nhóm tuổi
         </p>
       </div>
 
       <!-- Chart -->
 
-      <div
-        class="flex h-[250px] items-end justify-around gap-4 sm:gap-8"
-      >
+      <div class="relative h-[280px]">
+        <!-- Y axis -->
+
         <div
-          v-for="item in ageData"
-          :key="item.label"
-          class="flex h-full min-w-0 w-full max-w-[180px] flex-col items-center justify-end"
+          class="absolute bottom-[34px] left-0 top-0 flex w-[40px] flex-col justify-between"
         >
-          <!-- Bar area -->
+          <span
+            v-for="tick in ageChartTicks"
+            :key="tick"
+            class="text-[12px] leading-4 text-[#8B93A7]"
+          >
+            {{ formatAgeTick(tick) }}
+          </span>
+        </div>
+
+        <!-- Chart area -->
+
+        <div
+          class="absolute bottom-[34px] left-[46px] right-0 top-0"
+        >
+          <!-- Horizontal grid lines -->
 
           <div
-            class="flex h-[180px] w-full items-end justify-center"
+            v-for="(_, index) in ageChartTicks"
+            :key="index"
+            class="absolute inset-x-0 border-t border-[#232838]"
+            :style="{
+              top: `${(index / (ageChartTicks.length - 1)) * 100}%`,
+            }"
+          ></div>
+
+          <!-- Bars -->
+
+          <div
+            class="absolute inset-0 flex items-end justify-around gap-3 sm:gap-6"
           >
             <div
-              :class="[
-                item.className,
-                'relative w-full max-w-[160px] rounded-t-[6px]',
-              ]"
-              :style="{
-                height: getBarHeight(item.value),
-              }"
+              v-for="item in ageData"
+              :key="item.label"
+              class="flex h-full min-w-0 flex-1 flex-col items-center justify-end"
             >
-              <!-- Value -->
+              <!-- Bar -->
+
+              <div
+                class="relative w-full max-w-[160px] rounded-t-[6px] bg-[#F59E0B]"
+                :style="{
+                  height: getBarHeight(item.value),
+                }"
+              >
+                <!-- Value -->
+
+                <span
+                  class="absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap text-[13px] font-semibold leading-4 text-white"
+                >
+                  {{
+                    item.value.toLocaleString("vi-VN")
+                  }}
+                </span>
+              </div>
+
+              <!-- Label -->
 
               <span
-                class="absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap text-[13px] font-semibold leading-4 text-white"
+                class="absolute bottom-0 translate-y-full pt-2 text-center text-[12px] leading-4 text-[#8B93A7]"
               >
-                {{
-                  item.value.toLocaleString("vi-VN")
-                }}
+                {{ item.label }}
               </span>
             </div>
           </div>
-
-          <!-- Label -->
-
-          <span
-            class="mt-3 text-center text-[12px] leading-4 text-[#8B93A7]"
-          >
-            {{ item.label }}
-          </span>
         </div>
       </div>
     </div>
