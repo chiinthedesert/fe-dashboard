@@ -26,11 +26,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-// Show every day for 7 days or fewer.
-// Otherwise, show one label every 7 days.
-const dateTicks = registrationChartData
-  .filter((_, index) => registrationChartData.length <= 7 || index % 7 === 0)
-  .map((item) => new Date(item.date));
+const dateTicks = registrationChartData.map((item) => new Date(item.date));
 
 // Format dates as DD/MM
 function formatDate(value: number): string {
@@ -72,8 +68,9 @@ function formatDate(value: number): string {
           <VisAxis
             type="x"
             :x="(d: Data) => new Date(d.date)"
-            :tick-values="dateTicks"
             :tick-format="formatDate"
+            :tick-values="dateTicks"
+            :tick-text-adaptive-sets="true"
             :tick-line="false"
             :domain-line="false"
             :grid-line="false"
