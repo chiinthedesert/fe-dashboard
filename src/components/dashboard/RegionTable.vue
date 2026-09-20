@@ -18,7 +18,13 @@ import {
   useTable,
 } from "@tanstack/vue-table";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown } from "lucide-vue-next";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronDown,
+  Search,
+} from "lucide-vue-next";
 
 import { regionData } from "@/mocks/dashboardCharts";
 
@@ -191,56 +197,78 @@ watch(currentPage, (page) => {
     </CardHeader>
 
     <CardContent class="min-w-0 space-y-4 px-4">
-      <!-- Search and controls -->
-      <div
-        class="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-[minmax(12rem,20rem)_10rem_auto] lg:justify-start"
-      >
-        <Input
-          v-model="citySearch"
-          placeholder="Tìm tỉnh / thành..."
-          aria-label="Tìm tỉnh hoặc thành phố"
-          class="col-span-2 w-full min-w-0 lg:col-span-1"
-        />
+      <!-- Search, filter and actions -->
+      <div class="@container min-w-0">
+        <div
+          class="grid min-w-0 grid-cols-2 gap-3 @[36rem]:grid-cols-[minmax(12rem,20rem)_10rem_10rem] @[36rem]:justify-start"
+        >
+          <!-- Search -->
+          <div class="relative col-span-2 min-w-0 @[36rem]:col-span-1">
+            <Search
+              class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            />
 
-        <Select v-model="selectedRegion">
-          <SelectTrigger class="w-full min-w-0" aria-label="Lọc theo khu vực">
-            <SelectValue placeholder="Khu vực" />
-          </SelectTrigger>
+            <Input
+              v-model="citySearch"
+              placeholder="Tìm tỉnh / thành..."
+              aria-label="Tìm tỉnh hoặc thành phố"
+              class="w-full min-w-0 truncate pl-9 pr-3 text-sm"
+            />
+          </div>
 
-          <SelectContent>
-            <SelectItem value="all">Tất cả khu vực</SelectItem>
-            <SelectItem value="Miền Bắc">Miền Bắc</SelectItem>
-            <SelectItem value="Miền Trung">Miền Trung</SelectItem>
-            <SelectItem value="Miền Nam">Miền Nam</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button
-              type="button"
-              variant="outline"
+          <!-- Region filter -->
+          <Select v-model="selectedRegion">
+            <SelectTrigger
               class="w-full min-w-0 gap-2"
+              aria-label="Lọc theo khu vực"
             >
-              <span class="truncate">Hiển thị cột</span>
-              <ChevronDown class="size-4 shrink-0" />
-            </Button>
-          </DropdownMenuTrigger>
+              <SelectValue placeholder="Khu vực" />
+            </SelectTrigger>
 
-          <DropdownMenuContent align="end" :side-offset="4" class="w-48">
-            <DropdownMenuCheckboxItem
-              v-for="column in table
-                .getAllLeafColumns()
-                .filter((column) => column.getCanHide())"
-              :key="column.id"
-              :model-value="column.getIsVisible()"
-              @update:model-value="(value) => column.toggleVisibility(!!value)"
-              @select.prevent
+            <SelectContent>
+              <SelectItem value="all">Tất cả khu vực</SelectItem>
+              <SelectItem value="Miền Bắc">Miền Bắc</SelectItem>
+              <SelectItem value="Miền Trung">Miền Trung</SelectItem>
+              <SelectItem value="Miền Nam">Miền Nam</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <!-- Column visibility -->
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button
+                type="button"
+                variant="outline"
+                class="w-full min-w-0 justify-between gap-2 px-3 font-normal"
+              >
+                <span class="min-w-0 truncate text-left"> Hiển thị cột </span>
+
+                <ChevronDown class="size-4 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+              align="end"
+              :side-offset="4"
+              class="w-max min-w-(--reka-dropdown-menu-trigger-width) max-w-[calc(100vw-1rem)]"
             >
-              {{ columnLabels[column.id] ?? column.id }}
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuCheckboxItem
+                v-for="column in table
+                  .getAllLeafColumns()
+                  .filter((column) => column.getCanHide())"
+                :key="column.id"
+                :model-value="column.getIsVisible()"
+                class="pr-8 pl-2 [&>span:first-child]:right-2 [&>span:first-child]:left-auto [&_svg]:size-4 [&_svg]:text-muted-foreground"
+                @update:model-value="
+                  (value) => column.toggleVisibility(!!value)
+                "
+                @select.prevent
+              >
+                {{ column.columnDef.header }}
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <!-- Horizontal scrolling on narrow screens -->

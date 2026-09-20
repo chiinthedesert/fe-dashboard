@@ -188,76 +188,87 @@ function changePageSize(size: number) {
 
     <CardContent class="min-w-0 space-y-4 px-4">
       <!-- Search, filter and actions -->
-      <div
-        class="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-[minmax(12rem,20rem)_10rem_auto_minmax(0,1fr)_auto] lg:items-center"
-      >
-        <!-- Search -->
-        <div class="relative min-w-0">
-          <Search
-            class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-
-          <Input
-            v-model="partnerSearch"
-            placeholder="Tìm tên, liên hệ, ghi chú..."
-            aria-label="Tìm kiếm đối tác"
-            class="w-full min-w-0 pl-9 pr-3 placeholder:truncate"
-          />
-        </div>
-
-        <!-- Partner type filter -->
-        <Select v-model="selectedType">
-          <SelectTrigger
-            class="w-full min-w-0"
-            aria-label="Lọc theo phân loại đối tác"
-          >
-            <SelectValue placeholder="Tất cả loại" />
-          </SelectTrigger>
-
-          <SelectContent>
-            <SelectItem value="all">Tất cả loại</SelectItem>
-            <SelectItem value="Trường học">Trường học</SelectItem>
-            <SelectItem value="Doanh nghiệp">Doanh nghiệp</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <!-- Column visibility -->
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button
-              type="button"
-              variant="outline"
-              class="w-full min-w-0 gap-2"
-            >
-              <span class="truncate">Hiển thị cột</span>
-              <ChevronDown class="size-4 shrink-0" />
-            </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="end" :side-offset="4" class="w-48">
-            <DropdownMenuCheckboxItem
-              v-for="column in table
-                .getAllLeafColumns()
-                .filter((column) => column.getCanHide())"
-              :key="column.id"
-              :model-value="column.getIsVisible()"
-              @update:model-value="(value) => column.toggleVisibility(!!value)"
-              @select.prevent
-            >
-              {{ column.columnDef.header }}
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <!-- Add partner -->
-        <Button
-          type="button"
-          class="w-full min-w-0 gap-2 lg:col-start-5 lg:w-auto"
-          @click="emit('add')"
+      <div class="@container min-w-0">
+        <div
+          class="grid min-w-0 grid-cols-2 gap-3 @[46rem]:grid-cols-[minmax(12rem,20rem)_10rem_10rem_minmax(0,1fr)_auto] @[46rem]:items-center"
         >
-          <Plus class="size-4 shrink-0" />
-          <span class="truncate">Thêm đối tác</span>
-        </Button>
+          <!-- Search -->
+          <div class="relative min-w-0">
+            <Search
+              class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+
+            <Input
+              v-model="partnerSearch"
+              placeholder="Tìm tên, liên hệ, ghi chú..."
+              aria-label="Tìm kiếm đối tác"
+              class="w-full min-w-0 truncate pl-9 pr-3 text-sm"
+            />
+          </div>
+
+          <!-- Partner type filter -->
+          <Select v-model="selectedType">
+            <SelectTrigger
+              class="w-full min-w-0 gap-2"
+              aria-label="Lọc theo phân loại đối tác"
+            >
+              <SelectValue placeholder="Tất cả loại" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="all">Tất cả loại</SelectItem>
+              <SelectItem value="Trường học">Trường học</SelectItem>
+              <SelectItem value="Doanh nghiệp">Doanh nghiệp</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <!-- Column visibility -->
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button
+                type="button"
+                variant="outline"
+                class="w-full min-w-0 justify-between gap-2 px-3 font-normal"
+              >
+                <span class="min-w-0 truncate text-left"> Hiển thị cột </span>
+
+                <ChevronDown class="size-4 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+              align="start"
+              :side-offset="4"
+              class="w-max min-w-(--reka-dropdown-menu-trigger-width) max-w-[calc(100vw-1rem)]"
+            >
+              <DropdownMenuCheckboxItem
+                v-for="column in table
+                  .getAllLeafColumns()
+                  .filter((column) => column.getCanHide())"
+                :key="column.id"
+                :model-value="column.getIsVisible()"
+                class="pr-8 pl-2 [&>span:first-child]:right-2 [&>span:first-child]:left-auto [&_svg]:size-4 [&_svg]:text-muted-foreground"
+                @update:model-value="
+                  (value) => column.toggleVisibility(!!value)
+                "
+                @select.prevent
+              >
+                {{ column.columnDef.header }}
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <!-- Add partner -->
+          <Button
+            type="button"
+            class="w-full min-w-0 gap-2 @[46rem]:col-start-5 @[46rem]:w-auto"
+            @click="emit('add')"
+          >
+            <Plus class="size-4 shrink-0" />
+
+            <span class="min-w-0 truncate"> Thêm đối tác </span>
+          </Button>
+        </div>
       </div>
 
       <!-- Responsive table -->
