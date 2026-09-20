@@ -13,6 +13,9 @@
   "dependencies": {
     "@lucide/vue": "^1.47.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/vue-table": "^9.2.4",
+    "@unovis/ts": "^1.7.0",
+    "@unovis/vue": "^1.7.0",
     "@vueuse/core": "^15.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
