@@ -268,7 +268,7 @@ watch(currentPage, (page) => {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    class="h-auto min-h-8 w-full min-w-0 justify-start gap-1 px-0 py-1 whitespace-normal"
+                    class="h-auto min-h-8 w-full min-w-0 justify-start gap-1 whitespace-normal"
                     @click="header.column.toggleSorting()"
                   >
                     <span
