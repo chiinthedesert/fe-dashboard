@@ -9,15 +9,15 @@ import { computed, ref } from "vue";
 
 const examData = ref([
   {
-    name: "Bảng A (Tiểu học)",
+    name: "Bảng A",
     count: 4820,
   },
   {
-    name: "Bảng B (THCS)",
+    name: "Bảng B",
     count: 6150,
   },
   {
-    name: "Bảng C (THPT)",
+    name: "Bảng C",
     count: 4872,
   },
 ]);
@@ -51,27 +51,6 @@ const ageData = ref([
     label: "16 - 18 tuổi",
     value: 4872,
     className: "bg-[#34D399]",
-  },
-]);
-
-/* =========================================================
-   DỮ LIỆU GIỚI TÍNH
-   Mock data hiện tại.
-   Sau này API có thể gán vào genderData.value
-   ========================================================= */
-
-const genderData = ref([
-  {
-    label: "Nam",
-    value: 7200,
-  },
-  {
-    label: "Nữ",
-    value: 8100,
-  },
-  {
-    label: "Khác / Chưa cung cấp",
-    value: 542,
   },
 ]);
 
@@ -154,49 +133,22 @@ function getBarHeight(value: number) {
 
   return `${(value / maxAgeValue.value) * 100}%`;
 }
-
-/* =========================================================
-   GIỚI TÍNH
-   ========================================================= */
-
-const totalGender = computed(() => {
-  return genderData.value.reduce(
-    (total, item) => total + item.value,
-    0,
-  );
-});
-
-/* Có dữ liệu giới tính hay không */
-const hasGenderData = computed(() => {
-  return totalGender.value > 0;
-});
-
-/* Tính phần trăm giới tính */
-function getGenderPercentage(value: number) {
-  if (totalGender.value === 0) {
-    return "0";
-  }
-
-  return (
-    (value / totalGender.value) * 100
-  ).toFixed(1);
-}
 </script>
 
 <template>
   <div
-    class="grid min-w-0 grid-cols-2 gap-x-5 gap-y-[26px]"
+    class="grid min-w-0 grid-cols-[40fr_60fr] gap-x-[18px] gap-y-[26px]"
   >
     <!-- =====================================================
          BẢNG THI
          ===================================================== -->
 
     <div
-      class="h-[288px] min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
+      class="h-[400px] min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
     >
       <!-- Header -->
 
-      <div class="mb-[22px]">
+      <div class="mb-[18px]">
         <h3
           class="text-[16px] font-semibold leading-6 text-[#F8FAFC]"
         >
@@ -212,11 +164,13 @@ function getGenderPercentage(value: number) {
 
       <!-- Content -->
 
-      <div class="flex items-center gap-8">
+      <div
+        class="flex h-[280px] items-center gap-10"
+      >
         <!-- Donut -->
 
         <div
-          class="relative h-[172px] w-[172px] shrink-0"
+          class="relative h-[250px] w-[250px] shrink-0"
         >
           <svg
             class="h-full w-full -rotate-90"
@@ -262,7 +216,7 @@ function getGenderPercentage(value: number) {
             </span>
 
             <strong
-              class="mt-1 text-[18px] font-semibold leading-6 text-[#F8FAFC]"
+              class="mt-1 text-[22px] font-semibold leading-7 text-[#F8FAFC]"
             >
               {{
                 totalCandidates.toLocaleString("vi-VN")
@@ -274,7 +228,7 @@ function getGenderPercentage(value: number) {
         <!-- Legend -->
 
         <div
-          class="flex w-[310px] shrink-0 flex-col gap-[14px]"
+          class="flex min-w-0 flex-1 flex-col gap-[18px]"
         >
           <div
             v-for="item in donutData"
@@ -282,27 +236,27 @@ function getGenderPercentage(value: number) {
             class="flex flex-col"
           >
             <div
-              class="flex items-center justify-between"
+              class="flex items-center justify-between gap-3"
             >
               <div
-                class="flex items-center gap-2"
+                class="flex min-w-0 items-center gap-2"
               >
                 <span
-                  class="h-2.5 w-2.5 rounded-full"
+                  class="h-2.5 w-2.5 shrink-0 rounded-full"
                   :style="{
                     backgroundColor: item.color,
                   }"
                 ></span>
 
                 <span
-                  class="text-[13px] font-medium leading-[18px] text-[#F8FAFC]"
+                  class="truncate text-[13px] font-medium leading-[18px] text-[#F8FAFC]"
                 >
                   {{ item.name }}
                 </span>
               </div>
 
               <strong
-                class="text-[13px] font-semibold leading-[18px]"
+                class="shrink-0 text-[13px] font-semibold leading-[18px]"
                 :style="{
                   color: item.color,
                 }"
@@ -329,11 +283,11 @@ function getGenderPercentage(value: number) {
          ===================================================== -->
 
     <div
-      class="h-[288px] min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
+      class="h-[400px] min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
     >
       <!-- Header -->
 
-      <div class="mb-[22px]">
+      <div class="mb-[18px]">
         <h3
           class="text-[16px] font-semibold leading-6 text-[#F8FAFC]"
         >
@@ -350,22 +304,22 @@ function getGenderPercentage(value: number) {
       <!-- Chart -->
 
       <div
-        class="flex h-[190px] items-end justify-around gap-8"
+        class="flex h-[250px] items-end justify-around gap-8"
       >
         <div
           v-for="item in ageData"
           :key="item.label"
-          class="flex h-full w-full max-w-[150px] flex-col items-center justify-end"
+          class="flex h-full w-full max-w-[180px] flex-col items-center justify-end"
         >
           <!-- Bar area -->
 
           <div
-            class="flex h-[130px] w-full items-end justify-center"
+            class="flex h-[180px] w-full items-end justify-center"
           >
             <div
               :class="[
                 item.className,
-                'relative w-full max-w-[120px] rounded-t-[6px]',
+                'relative w-full max-w-[160px] rounded-t-[6px]',
               ]"
               :style="{
                 height: getBarHeight(item.value),
@@ -374,7 +328,7 @@ function getGenderPercentage(value: number) {
               <!-- Value -->
 
               <span
-                class="absolute left-1/2 top-2 -translate-x-1/2 text-[12px] font-semibold leading-4 text-white"
+                class="absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap text-[13px] font-semibold leading-4 text-white"
               >
                 {{
                   item.value.toLocaleString("vi-VN")
@@ -389,81 +343,6 @@ function getGenderPercentage(value: number) {
             class="mt-3 text-center text-[12px] leading-4 text-[#8B93A7]"
           >
             {{ item.label }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- =====================================================
-         GIỚI TÍNH
-         ===================================================== -->
-
-    <div
-      class="col-span-full h-[242px] min-h-[242px] min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
-    >
-      <!-- Header -->
-
-      <div
-        class="mb-[17px] flex items-start justify-between"
-      >
-        <div>
-          <h3
-            class="text-[16px] font-semibold leading-6 text-[#F8FAFC]"
-          >
-            Phân tích nhân khẩu học &amp; Giới tính
-          </h3>
-
-          <p
-            class="mt-1 text-[13px] font-normal leading-[18px] text-[#8B93A7]"
-          >
-            Các thông số giới tính của thí sinh đăng ký
-            trên cổng thông tin chung
-          </p>
-        </div>
-
-        <!-- Chỉ hiện khi không có dữ liệu -->
-
-        <span
-          v-if="!hasGenderData"
-          class="rounded-md border border-[#FB7185] bg-[#FB7185]/10 px-2 py-1 text-[12px] font-medium leading-4 text-[#FB7185]"
-        >
-          Chưa có dữ liệu
-        </span>
-      </div>
-
-      <!-- Gender cards -->
-
-      <div class="grid grid-cols-3 gap-4">
-        <div
-          v-for="item in genderData"
-          :key="item.label"
-          class="flex h-[132px] flex-col rounded-[13px] bg-[#232838] p-[22px]"
-        >
-          <!-- Label -->
-
-          <span
-            class="text-[13px] font-medium leading-[18px] text-[#8B93A7]"
-          >
-            {{ item.label }}
-          </span>
-
-          <!-- Number -->
-
-          <strong
-            class="mt-2 text-[24px] font-semibold leading-8 text-[#F8FAFC]"
-          >
-            {{
-              item.value.toLocaleString("vi-VN")
-            }}
-          </strong>
-
-          <!-- Percentage -->
-
-          <span
-            class="mt-auto text-[12px] leading-4 text-[#8B93A7]"
-          >
-            {{ getGenderPercentage(item.value) }}%
-            tổng số thí sinh
           </span>
         </div>
       </div>
