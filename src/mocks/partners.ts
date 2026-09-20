@@ -1,0 +1,58 @@
+import type { Partner } from "@/types/partner";
+
+export const mockPartners: Partner[] = [
+  {
+    id: 1,
+    name: "Công ty TNHH Công nghệ Sao Việt",
+    type: "Doanh nghiệp",
+    contactName: "Nguyễn Minh Anh",
+    email: "minhanh@saoviet.vn",
+    phone: "0901234567",
+    notes: "Nhà tài trợ chính, ưu tiên trao đổi về truyền thông.",
+  },
+  {
+    id: 2,
+    name: "Đại học Bách Khoa Hà Nội",
+    type: "Trường học",
+    contactName: "Trần Quốc Huy",
+    email: "huy.tq@hust.edu.vn",
+    phone: "0912345678",
+    notes: "Đối tác địa điểm và phối hợp tuyển sinh khu vực miền Bắc.",
+  },
+  {
+    id: 3,
+    name: "Công ty Cổ phần Giáo dục NextGen",
+    type: "Doanh nghiệp",
+    contactName: "Lê Thu Hà",
+    email: "ha.le@nextgen.edu.vn",
+    phone: "0987654321",
+    notes: "Đang trao đổi gói đồng hành mùa thi 2026.",
+  },
+  {
+    id: 4,
+    name: "Học viện Công nghệ Bưu chính Viễn thông",
+    type: "Trường học",
+    contactName: "Phạm Hoàng Long",
+    email: "longph@ptit.edu.vn",
+    phone: "0938123456",
+    notes: "Đầu mối giới thiệu thí sinh và hỗ trợ chuyên môn.",
+  },
+  {
+    id: 5,
+    name: "Trường THPT Chuyên Hà Nội - Amsterdam",
+    type: "Trường học",
+    contactName: "Nguyễn Thanh Bình",
+    email: "binh.nt@example.com",
+    phone: "0912345670",
+    notes: "Phối hợp truyền thông cuộc thi đến học sinh.",
+  },
+  {
+    id: 6,
+    name: "Công ty TNHH Giải pháp Công nghệ ABC",
+    type: "Doanh nghiệp",
+    contactName: "Trần Minh Đức",
+    email: "duc.tm@example.com",
+    phone: "0987123456",
+    notes: "Đang trao đổi về hỗ trợ giải thưởng.",
+  },
+];

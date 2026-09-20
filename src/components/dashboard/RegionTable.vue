@@ -54,11 +54,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import TablePagination from "@/components/shared/TablePagination.vue";
 
 type RegionRow = (typeof regionData)[number];
 
 const numberFormatter = new Intl.NumberFormat("vi-VN");
-const pageSizes = [10, 20, 50];
 function isNumericColumn(id: string) {
   return ["registrations", "target", "conversion"].includes(id);
 }
@@ -175,28 +175,12 @@ function changePageSize(size: number) {
 
 const currentPage = computed(() => table.atoms.pagination.get().pageIndex + 1);
 
-const totalPages = computed(() => Math.max(1, table.getPageCount()));
-
 const pageInput = ref<string | number>(currentPage.value);
 
 // Keep the input updated after filtering or using Previous/Next.
 watch(currentPage, (page) => {
   pageInput.value = page;
 });
-
-function goToPage() {
-  const value = Number(pageInput.value);
-
-  if (pageInput.value === "" || !Number.isFinite(value)) {
-    pageInput.value = currentPage.value;
-    return;
-  }
-
-  const page = Math.min(totalPages.value, Math.max(1, Math.trunc(value)));
-
-  table.setPageIndex(page - 1);
-  pageInput.value = page;
-}
 </script>
 
 <template>
@@ -389,83 +373,15 @@ function goToPage() {
       </div>
 
       <!-- Row count and pagination -->
-      <div class="flex flex-col gap-3">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <p class="text-sm text-muted-foreground">
-            {{ table.getFilteredRowModel().rows.length }} tỉnh
-          </p>
-
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-muted-foreground">Số dòng</span>
-
-            <div
-              role="group"
-              aria-label="Số dòng mỗi trang"
-              class="inline-flex overflow-hidden rounded-md border"
-            >
-              <Button
-                v-for="size in pageSizes"
-                :key="size"
-                type="button"
-                variant="ghost"
-                size="sm"
-                class="rounded-none border-r px-3 last:border-r-0"
-                :class="{
-                  'bg-accent text-accent-foreground':
-                    table.atoms.pagination.get().pageSize === size,
-                }"
-                :aria-pressed="table.atoms.pagination.get().pageSize === size"
-                @click="changePageSize(size)"
-              >
-                {{ size }}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Trang</span>
-
-            <Input
-              v-model="pageInput"
-              type="number"
-              inputmode="numeric"
-              :min="1"
-              :max="totalPages"
-              :step="1"
-              aria-label="Trang hiện tại"
-              class="h-8 w-14 px-1 text-center tabular-nums"
-              @keydown.enter.prevent="goToPage"
-              @blur="goToPage"
-            />
-
-            <span>/ {{ totalPages }}</span>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              :disabled="!table.getCanPreviousPage()"
-              @click="table.previousPage()"
-            >
-              Trước
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              :disabled="!table.getCanNextPage()"
-              @click="table.nextPage()"
-            >
-              Sau
-            </Button>
-          </div>
-        </div>
-      </div>
+      <TablePagination
+        :page="table.atoms.pagination.get().pageIndex + 1"
+        :page-count="table.getPageCount()"
+        :page-size="table.atoms.pagination.get().pageSize"
+        :total="table.getFilteredRowModel().rows.length"
+        item-label="tỉnh"
+        @update:page="table.setPageIndex($event - 1)"
+        @update:page-size="changePageSize"
+      />
     </CardContent>
   </Card>
 </template>

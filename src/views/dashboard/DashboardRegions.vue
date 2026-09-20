@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import RegionCards from "@/components/RegionCards.vue";
-import RegionTable from "@/components/RegionTable.vue";
+import RegionCards from "@/components/dashboard/RegionCards.vue";
+import RegionTable from "@/components/dashboard/RegionTable.vue";
 </script>
 
 <template>
