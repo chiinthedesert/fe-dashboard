@@ -192,6 +192,7 @@ function changePageSize(size: number) {
         class="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-[minmax(12rem,20rem)_10rem_auto_minmax(0,1fr)_auto] lg:items-center"
       >
         <!-- Search -->
+        <!-- Search -->
         <div class="relative min-w-0">
           <Search
             class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -201,7 +202,7 @@ function changePageSize(size: number) {
             v-model="partnerSearch"
             placeholder="Tìm tên, liên hệ, ghi chú..."
             aria-label="Tìm kiếm đối tác"
-            class="w-full min-w-0 pl-9"
+            class="w-full min-w-0 pl-9 pr-3 placeholder:truncate"
           />
         </div>
 
