@@ -137,14 +137,14 @@ function getBarHeight(value: number) {
 
 <template>
   <div
-    class="grid min-w-0 grid-cols-[40fr_60fr] gap-x-[18px] gap-y-[26px]"
+    class="grid min-w-0 grid-cols-1 gap-[18px] xl:grid-cols-[40fr_60fr]"
   >
     <!-- =====================================================
          BẢNG THI
          ===================================================== -->
 
     <div
-      class="h-[400px] min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
+      class="min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
     >
       <!-- Header -->
 
@@ -165,12 +165,12 @@ function getBarHeight(value: number) {
       <!-- Content -->
 
       <div
-        class="flex h-[280px] items-center gap-10"
+        class="flex h-auto flex-col items-center gap-6 lg:h-[280px] lg:flex-row lg:gap-10"
       >
         <!-- Donut -->
 
         <div
-          class="relative h-[250px] w-[250px] shrink-0"
+          class="relative h-[210px] w-[210px] shrink-0 lg:h-[250px] lg:w-[250px]"
         >
           <svg
             class="h-full w-full -rotate-90"
@@ -228,7 +228,7 @@ function getBarHeight(value: number) {
         <!-- Legend -->
 
         <div
-          class="flex min-w-0 flex-1 flex-col gap-[18px]"
+          class="flex min-w-0 w-full flex-1 flex-col gap-[18px] lg:w-auto"
         >
           <div
             v-for="item in donutData"
@@ -283,7 +283,7 @@ function getBarHeight(value: number) {
          ===================================================== -->
 
     <div
-      class="h-[400px] min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
+      class="min-w-0 rounded-2xl border border-[#232838] bg-[#141824] p-6"
     >
       <!-- Header -->
 
@@ -304,12 +304,12 @@ function getBarHeight(value: number) {
       <!-- Chart -->
 
       <div
-        class="flex h-[250px] items-end justify-around gap-8"
+        class="flex h-[250px] items-end justify-around gap-4 sm:gap-8"
       >
         <div
           v-for="item in ageData"
           :key="item.label"
-          class="flex h-full w-full max-w-[180px] flex-col items-center justify-end"
+          class="flex h-full min-w-0 w-full max-w-[180px] flex-col items-center justify-end"
         >
           <!-- Bar area -->
 
