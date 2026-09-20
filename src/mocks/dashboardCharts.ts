@@ -57,3 +57,20 @@ export const conversionChartData = [
   { key: "registration", label: "Đăng ký", count: 3100 },
   { key: "participation", label: "Tham gia", count: 2400 },
 ];
+
+export const regionData = [
+  { city: "Hà Nội", region: "Miền Bắc", registrations: 2840, target: 3200, conversion: 71 },
+  { city: "Hải Phòng", region: "Miền Bắc", registrations: 1120, target: 1500, conversion: 62 },
+  { city: "Bắc Ninh", region: "Miền Bắc", registrations: 860, target: 1200, conversion: 58 },
+  { city: "Thái Nguyên", region: "Miền Bắc", registrations: 800, target: 1100, conversion: 55 },
+
+  { city: "Đà Nẵng", region: "Miền Trung", registrations: 980, target: 1400, conversion: 60 },
+  { city: "Nghệ An", region: "Miền Trung", registrations: 720, target: 1300, conversion: 48 },
+  { city: "Huế", region: "Miền Trung", registrations: 480, target: 1000, conversion: 44 },
+  { city: "Khánh Hòa", region: "Miền Trung", registrations: 300, target: 800, conversion: 41 },
+
+  { city: "TP. Hồ Chí Minh", region: "Miền Nam", registrations: 2600, target: 3200, conversion: 68 },
+  { city: "Bình Dương", region: "Miền Nam", registrations: 860, target: 1400, conversion: 52 },
+  { city: "Cần Thơ", region: "Miền Nam", registrations: 560, target: 1100, conversion: 47 },
+  { city: "Đồng Nai", region: "Miền Nam", registrations: 360, target: 800, conversion: 43 },
+];

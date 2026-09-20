@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Filter from "@/components/ui/filter/Filter.vue";
-import SectionCards from "@/components/SectionCards.vue";
+import OverviewCards from "@/components/OverviewCards.vue";
 import RegisChart from "@/components/RegisChart.vue";
 import ConversionChart from "@/components/ConversionChart.vue";
 </script>
@@ -9,7 +9,7 @@ import ConversionChart from "@/components/ConversionChart.vue";
     <Filter />
   </section>
   <section>
-    <SectionCards />
+    <OverviewCards />
   </section>
 
   <section
