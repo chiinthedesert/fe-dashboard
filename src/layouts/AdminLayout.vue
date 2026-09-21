@@ -2,6 +2,7 @@
 import AppSidebar from "@/components/AppSidebar.vue";
 import { computed } from "vue";
 import { RouterView, useRoute } from "vue-router";
+import ThemeToggle from "@/components/shared/ThemeToggle.vue";
 
 import {
   SidebarInset,
@@ -40,6 +41,9 @@ const pageDescription = computed(() =>
           <p class="truncate text-sm text-muted-foreground">
             {{ pageDescription }}
           </p>
+        </div>
+        <div class="ml-auto shrink-0">
+          <ThemeToggle />
         </div>
       </header>
 

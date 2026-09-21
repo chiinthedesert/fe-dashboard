@@ -47,7 +47,7 @@ const activeTab = computed({
             v-for="tab in tabs"
             :key="tab.routeName"
             :value="tab.routeName"
-            class="shrink-0 whitespace-nowrap"
+            class="shrink-0 whitespace-nowrap transition-colors hover:bg-foreground/10 data-[state=active]:hover:bg-background"
           >
             {{ tab.label }}
           </TabsTrigger>

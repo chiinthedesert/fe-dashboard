@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ChartConfig } from "@/components/ui/chart";
 
+import { Donut } from "@unovis/ts";
 import { VisDonut, VisSingleContainer } from "@unovis/vue";
 
 import {
@@ -11,13 +12,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { ChartContainer } from "@/components/ui/chart";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  componentToString,
+} from "@/components/ui/chart";
 
 import { examBoardData } from "@/mocks/dashboardCharts";
 
 type Data = (typeof examBoardData)[number];
 
 const chartConfig = {
+  count: {
+    label: "Số thí sinh",
+    color: undefined,
+  },
   boardA: {
     label: "Bảng A",
     color: "var(--chart-1)",
@@ -41,6 +51,25 @@ function getBoardColor(board: string): string {
     ? chartConfig.boardA.color
     : chartConfig.boardB.color;
 }
+
+const renderTooltip = componentToString(chartConfig, ChartTooltipContent, {
+  hideLabel: true,
+})!;
+
+const tooltipTriggers = {
+  [Donut.selectors.segment]: (d: { data: Data }) => {
+    const item = d.data;
+
+    const key = item.board === "Bảng A" ? "boardA" : "boardB";
+
+    return renderTooltip(
+      {
+        [key]: item.count,
+      },
+      0,
+    );
+  },
+};
 </script>
 
 <template>
@@ -66,6 +95,8 @@ function getBoardColor(board: string): string {
             :pad-angle="0"
             :corner-radius="0"
           />
+
+          <ChartTooltip :triggers="tooltipTriggers" />
         </VisSingleContainer>
       </ChartContainer>
 
@@ -79,7 +110,7 @@ function getBoardColor(board: string): string {
           class="flex items-center gap-2"
         >
           <span
-            class="size-2.5 shrink-0 rounded-sm"
+            class="size-3 shrink-0 rounded-xs"
             :style="{
               backgroundColor: getBoardColor(item.board),
             }"

@@ -98,7 +98,7 @@ function changePage(page: number) {
           :step="1"
           :disabled="total === 0"
           aria-label="Trang hiện tại"
-          class="h-8 w-14 px-1 text-center tabular-nums"
+          class="h-6 w-10 px-1 text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           @keydown.enter.prevent="goToPage"
           @blur="goToPage"
         />

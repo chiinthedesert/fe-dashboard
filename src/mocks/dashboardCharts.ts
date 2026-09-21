@@ -75,7 +75,6 @@ export const regionData = [
   { city: "Đồng Nai", region: "Miền Nam", registrations: 360, target: 800, conversion: 43 },
 ];
 
-
 export const examBoardData = [
   {
     board: "Bảng A",
