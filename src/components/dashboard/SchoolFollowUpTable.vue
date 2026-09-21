@@ -25,7 +25,6 @@ import {
   ArrowUp,
   ArrowUpDown,
   ChevronDown,
-  Download,
   Search,
 } from "lucide-vue-next";
 
@@ -185,64 +184,6 @@ function changePageSize(size: number) {
   table.setPageSize(size);
   table.setPageIndex(0);
 }
-
-// CSV export
-
-function escapeCSV(value: string | number | null): string {
-  const text = String(value ?? "");
-
-  // Prevent spreadsheet applications from interpreting
-  // user-provided values as formulas.
-  const safe = /^[\s]*[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-
-  return `"${safe.replace(/"/g, '""')}"`;
-}
-
-function exportCSV() {
-  const headers = [
-    "Trường",
-    "Khu vực",
-    "Thiếu mục tiêu tuần",
-    "Tỷ lệ chuyển đổi (%)",
-    "Quá hạn (ngày)",
-  ];
-
-  // Export all filtered and sorted rows,
-  // not just the current page.
-  const rows = table.getSortedRowModel().rows.map((row) => {
-    const school = row.original;
-
-    return [
-      school.school,
-      school.region,
-      school.shortfall,
-      school.conversion,
-      school.overdueDays,
-    ];
-  });
-
-  const csv = [
-    headers.map(escapeCSV).join(","),
-    ...rows.map((row) => row.map(escapeCSV).join(",")),
-  ].join("\r\n");
-
-  // UTF-8 BOM for Vietnamese text in Excel.
-  const blob = new Blob(["\uFEFF", csv], {
-    type: "text/csv;charset=utf-8;",
-  });
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = "bao-cao-truong-hoc.csv";
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  URL.revokeObjectURL(url);
-}
 </script>
 
 <template>
@@ -260,10 +201,10 @@ function exportCSV() {
       <!-- Search, filter and actions -->
       <div class="@container min-w-0">
         <div
-          class="grid min-w-0 grid-cols-2 gap-3 @[46rem]:grid-cols-[minmax(12rem,20rem)_10rem_10rem_minmax(0,1fr)_auto] @[46rem]:items-center"
+          class="grid min-w-0 grid-cols-2 gap-3 @[36rem]:grid-cols-[minmax(12rem,20rem)_10rem_10rem] @[36rem]:justify-start"
         >
           <!-- Search -->
-          <div class="relative min-w-0">
+          <div class="relative col-span-2 min-w-0 @[36rem]:col-span-1">
             <Search
               class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
@@ -328,18 +269,6 @@ function exportCSV() {
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <!-- Export report -->
-          <Button
-            type="button"
-            variant="outline"
-            class="w-full min-w-0 gap-2 @[46rem]:col-start-5 @[46rem]:w-auto"
-            @click="exportCSV"
-          >
-            <Download class="size-4 shrink-0" />
-
-            <span class="min-w-0 truncate"> Xuất báo cáo </span>
-          </Button>
         </div>
       </div>
 
