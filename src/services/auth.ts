@@ -109,3 +109,22 @@ export async function login(
     tokenType: tokenType || "Bearer",
   };
 }
+
+
+export async function logout(
+  accessToken: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/auth/logout`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Không thể đăng xuất khỏi máy chủ.");
+  }
+}

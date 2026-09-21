@@ -35,12 +35,23 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 const route = useRoute();
 const router = useRouter();
 
-const { currentAdmin, logout } = useAuth();
+import { logout as logoutApi } from "@/services/auth";
+const { currentAdmin, accessToken, clearSession } = useAuth();
 
 async function handleLogout() {
-  logout();
-  setOpenMobile(false);
-  await router.replace("/login");
+  const token = accessToken.value;
+
+  try {
+    if (token) {
+      await logoutApi(token);
+    }
+  } catch (error) {
+    console.error("Backend logout failed:", error);
+  } finally {
+    clearSession();
+    setOpenMobile(false);
+    await router.replace("/login");
+  }
 }
 </script>
 

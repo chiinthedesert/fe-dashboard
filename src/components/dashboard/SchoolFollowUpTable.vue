@@ -285,11 +285,6 @@ function changePageSize(size: number) {
                 v-for="header in headerGroup.headers"
                 :key="header.id"
                 class="h-auto whitespace-normal px-2 py-2"
-                :class="
-                  isNumericColumn(header.column.id)
-                    ? 'text-center'
-                    : 'text-left'
-                "
                 :aria-sort="
                   header.column.getIsSorted() === 'asc'
                     ? 'ascending'
@@ -311,14 +306,7 @@ function changePageSize(size: number) {
                     "
                     @click="header.column.toggleSorting()"
                   >
-                    <span
-                      class="min-w-0 whitespace-normal leading-tight"
-                      :class="
-                        isNumericColumn(header.column.id)
-                          ? 'text-center'
-                          : 'text-left'
-                      "
-                    >
+                    <span class="min-w-0 whitespace-normal leading-tight">
                       <FlexRender
                         :render="header.column.columnDef.header"
                         :props="header.getContext()"

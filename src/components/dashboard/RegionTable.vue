@@ -66,17 +66,8 @@ type RegionRow = (typeof regionData)[number];
 
 const numberFormatter = new Intl.NumberFormat("vi-VN");
 function isNumericColumn(id: string) {
-  return ["registrations", "target", "conversion"].includes(id);
+  return ["registrations", "target", "progress", "conversion"].includes(id);
 }
-
-const columnLabels: Record<string, string> = {
-  city: "Tỉnh / Thành",
-  region: "Khu vực",
-  registrations: "Đăng ký",
-  target: "Chỉ tiêu",
-  progress: "Tiến độ",
-  conversion: "Tỷ lệ chuyển đổi",
-};
 
 function getProgress(row: RegionRow) {
   return row.target > 0 ? (row.registrations / row.target) * 100 : null;
@@ -296,25 +287,31 @@ watch(currentPage, (page) => {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    class="h-auto min-h-8 w-full min-w-0 justify-start gap-1 whitespace-normal"
+                    class="h-auto min-h-8 w-full min-w-0 gap-1 whitespace-normal"
+                    :class="
+                      isNumericColumn(header.column.id)
+                        ? 'justify-center'
+                        : 'justify-start'
+                    "
                     @click="header.column.toggleSorting()"
                   >
-                    <span
-                      class="min-w-0 whitespace-normal text-left leading-tight"
-                    >
+                    <span class="min-w-0 whitespace-normal leading-tight">
                       <FlexRender
                         :render="header.column.columnDef.header"
                         :props="header.getContext()"
                       />
                     </span>
+
                     <ArrowUp
                       v-if="header.column.getIsSorted() === 'asc'"
                       class="size-3.5 shrink-0"
                     />
+
                     <ArrowDown
                       v-else-if="header.column.getIsSorted() === 'desc'"
                       class="size-3.5 shrink-0"
                     />
+
                     <ArrowUpDown
                       v-else
                       class="size-3.5 shrink-0 text-muted-foreground"
@@ -356,7 +353,7 @@ watch(currentPage, (page) => {
                   <template v-else-if="cell.column.id === 'progress'">
                     <div
                       v-if="getProgress(row.original) !== null"
-                      class="flex min-w-28 items-center gap-2"
+                      class="flex min-w-28 items-center justify-center gap-2"
                     >
                       <Progress
                         :model-value="

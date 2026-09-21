@@ -40,29 +40,30 @@ const activeTab = computed({
 </script>
 <template>
   <div class="flex min-w-0 flex-col gap-4">
-    <Tabs v-model="activeTab" class="min-w-0 max-w-full">
-      <div class="overflow-x-auto">
-        <TabsList class="w-max">
-          <TabsTrigger
-            v-for="tab in tabs"
-            :key="tab.routeName"
-            :value="tab.routeName"
-            class="shrink-0 whitespace-nowrap transition-colors hover:bg-foreground/10 data-[state=active]:hover:bg-background"
-          >
-            {{ tab.label }}
-          </TabsTrigger>
-        </TabsList>
-      </div>
-    </Tabs>
+    <!-- Tabs and export button -->
+    <div class="flex min-w-0 items-center justify-between gap-4">
+      <Tabs v-model="activeTab" class="min-w-0 flex-1">
+        <div class="overflow-x-auto">
+          <TabsList class="w-max gap-2">
+            <TabsTrigger
+              v-for="tab in tabs"
+              :key="tab.routeName"
+              :value="tab.routeName"
+              class="shrink-0 whitespace-nowrap transition-colors hover:bg-foreground/10 data-[state=active]:hover:bg-background"
+            >
+              {{ tab.label }}
+            </TabsTrigger>
+          </TabsList>
+        </div>
+      </Tabs>
 
-    <RouterView />
-
-    <!-- Stays visible while scrolling; occupies space at the bottom -->
-    <div class="pointer-events-none sticky bottom-4 z-20 flex justify-end">
-      <Button type="button" class="pointer-events-auto gap-2 shadow-lg">
+      <!-- Export button -->
+      <Button type="button" class="shrink-0 gap-2">
         <Download class="size-4 shrink-0" />
-        Xuất báo cáo
+        <span class="hidden sm:inline">Xuất báo cáo</span>
       </Button>
     </div>
+
+    <RouterView />
   </div>
 </template>

@@ -49,7 +49,7 @@ export function useAuth() {
     session.value = authSession;
   }
 
-  function logout() {
+  function clearSession() {
     sessionStorage.removeItem(SESSION_KEY);
     session.value = null;
   }
@@ -59,6 +59,6 @@ export function useAuth() {
     accessToken,
     isLoggedIn,
     startSession,
-    logout,
+    clearSession
   };
 }
