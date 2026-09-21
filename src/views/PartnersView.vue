@@ -2,7 +2,7 @@
 import { ref } from "vue";
 
 import PartnersTable from "@/components/partners/PartnersTable.vue";
-import PartnersFormDialog from "@/components/partners/PartnersFormDialog.vue";
+import PartnerFormDialog from "@/components/partners/PartnerFormDialog.vue";
 import DeletePartnerDialog from "@/components/partners/DeletePartnerDialog.vue";
 
 import { mockPartners } from "@/mocks/partners";
@@ -87,7 +87,7 @@ function confirmDelete() {
     />
 
     <!-- Add / Edit partner dialog -->
-    <PartnersFormDialog
+    <PartnerFormDialog
       v-model:open="isFormOpen"
       :partner="selectedPartner"
       @submit="savePartner"

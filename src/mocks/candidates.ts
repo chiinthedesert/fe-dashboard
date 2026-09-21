@@ -2,6 +2,7 @@ import {
   candidateStatuses,
   type Candidate,
 } from "@/types/candidate";
+import { mockSalesPeople } from "@/mocks/salesPeople";
 
 const candidateNames = [
   // 1–10
@@ -162,7 +163,6 @@ export const mockCandidates: Candidate[] = candidateNames.map(
   (name, index) => {
     const id = 1001 + index;
 
-    // Offset each group so a school can have different statuses.
     const statusIndex =
       (index + Math.floor(index / schools.length)) %
       candidateStatuses.length;
@@ -171,12 +171,15 @@ export const mockCandidates: Candidate[] = candidateNames.map(
       id,
       name,
       email: `${createEmailName(name)}.${id}@example.com`,
-
-      // Mock phone strings: 0900000001 → 0900000100.
       phone: `090${String(index + 1).padStart(7, "0")}`,
-
       school: schools[index % schools.length] ?? "Chưa cập nhật",
       status: candidateStatuses[statusIndex] ?? "Chờ hồ sơ",
+
+      // Synthetic test values, not real identity information.
+      citizenId: String(index + 1).padStart(12, "0"),
+      division: "Bảng A - Sinh viên",
+      salesPersonId:
+        mockSalesPeople[index % mockSalesPeople.length]?.id ?? "",
     };
   },
 );
