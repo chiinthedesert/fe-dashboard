@@ -74,3 +74,118 @@ export const regionData = [
   { city: "Cần Thơ", region: "Miền Nam", registrations: 560, target: 1100, conversion: 47 },
   { city: "Đồng Nai", region: "Miền Nam", registrations: 360, target: 800, conversion: 43 },
 ];
+
+
+export const examBoardData = [
+  {
+    board: "Bảng A",
+    count: 600,
+  },
+  {
+    board: "Bảng B",
+    count: 400,
+  },
+];
+
+export const ageGroupData = [
+  {
+    ageGroup: "Dưới 15",
+    count: 140,
+  },
+  {
+    ageGroup: "15 – 17",
+    count: 470,
+  },
+  {
+    ageGroup: "18 – 20",
+    count: 280,
+  },
+  {
+    ageGroup: "Trên 20",
+    count: 110,
+  },
+];
+
+
+export const schoolFollowUpData = [
+  {
+    id: 1,
+    school: "THPT Chuyên Lê Hồng Phong",
+    region: "Miền Nam",
+    shortfall: 420,
+    conversion: 38,
+    overdueDays: 12,
+  },
+  {
+    id: 2,
+    school: "THPT Chuyên Hà Nội - Amsterdam",
+    region: "Miền Bắc",
+    shortfall: 310,
+    conversion: 42,
+    overdueDays: 8,
+  },
+  {
+    id: 3,
+    school: "THPT Chuyên Lê Quý Đôn",
+    region: "Miền Trung",
+    shortfall: 285,
+    conversion: 35,
+    overdueDays: 15,
+  },
+  {
+    id: 4,
+    school: "THPT Nguyễn Thị Minh Khai",
+    region: "Miền Nam",
+    shortfall: 260,
+    conversion: 44,
+    overdueDays: 6,
+  },
+  {
+    id: 5,
+    school: "THPT Chuyên Trần Đại Nghĩa",
+    region: "Miền Nam",
+    shortfall: 198,
+    conversion: 47,
+    overdueDays: 4,
+  },
+  {
+    id: 6,
+    school: "THPT Chu Văn An",
+    region: "Miền Bắc",
+    shortfall: 175,
+    conversion: 51,
+    overdueDays: null,
+  },
+  {
+    id: 7,
+    school: "THPT Chuyên Quốc Học Huế",
+    region: "Miền Trung",
+    shortfall: 152,
+    conversion: 49,
+    overdueDays: 3,
+  },
+  {
+    id: 8,
+    school: "THPT Chuyên Lê Khiết",
+    region: "Miền Trung",
+    shortfall: 140,
+    conversion: 46,
+    overdueDays: 9,
+  },
+  {
+    id: 9,
+    school: "THPT Chuyên Nguyễn Bỉnh Khiêm",
+    region: "Miền Nam",
+    shortfall: 95,
+    conversion: 53,
+    overdueDays: null,
+  },
+  {
+    id: 10,
+    school: "THPT Việt Đức",
+    region: "Miền Bắc",
+    shortfall: 60,
+    conversion: 58,
+    overdueDays: null,
+  },
+];
