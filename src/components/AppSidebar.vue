@@ -118,27 +118,6 @@ async function handleLogout() {
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
-    <!-- <SidebarFooter> -->
-    <!--   <SidebarMenu> -->
-    <!--     <SidebarMenuItem> -->
-    <!--       <SidebarMenuButton size="lg" class="p-0"> -->
-    <!--         <div -->
-    <!--           class="flex aspect-square size-10 overflow-hidden items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground" -->
-    <!--         > -->
-    <!--           <ShieldUser /> -->
-    <!--         </div> -->
-    <!--         <div class="grid flex-1 text-left leading-tight"> -->
-    <!--           <span class="truncate font-semibold"> -->
-    <!--             {{ currentAdmin?.name }} -->
-    <!--           </span> -->
-    <!--           <span class="truncate text-xs text-muted-foreground"> -->
-    <!--             {{ currentAdmin?.department }} -->
-    <!--           </span> -->
-    <!--         </div> -->
-    <!--       </SidebarMenuButton> -->
-    <!--     </SidebarMenuItem> -->
-    <!--   </SidebarMenu> -->
-    <!-- </SidebarFooter> -->
     <SidebarFooter>
       <SidebarMenu>
         <SidebarMenuItem>
@@ -153,10 +132,11 @@ async function handleLogout() {
 
                 <div class="grid min-w-0 flex-1 text-left leading-tight">
                   <span class="truncate font-semibold">
-                    {{ currentAdmin?.name }}
+                    {{ currentAdmin?.hoTen?.trim() || currentAdmin?.username }}
                   </span>
+
                   <span class="truncate text-xs text-muted-foreground">
-                    {{ currentAdmin?.department }}
+                    Quản trị viên
                   </span>
                 </div>
 

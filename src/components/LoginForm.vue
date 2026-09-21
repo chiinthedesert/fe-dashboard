@@ -1,26 +1,26 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue";
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
+import { useAuth } from "@/composables/useAuth";
+import { login } from "@/services/auth";
+
 const props = defineProps<{
   class?: HTMLAttributes["class"];
 }>();
 
-import { useAuth } from "@/composables/useAuth";
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { login } from "@/services/auth";
-
 const router = useRouter();
-
 const { startSession } = useAuth();
 
-const email = ref("admin@example.com");
-const password = ref("admin123");
+const username = ref("");
+const password = ref("");
 const errorMessage = ref("");
 const isSubmitting = ref(false);
 
@@ -31,12 +31,12 @@ async function handleSubmit() {
   isSubmitting.value = true;
 
   try {
-    const admin = await login({
-      email: email.value,
+    const authSession = await login({
+      username: username.value.trim(),
       password: password.value,
     });
 
-    startSession(admin);
+    startSession(authSession);
 
     await router.replace("/dashboard");
   } catch (error) {
@@ -56,37 +56,37 @@ async function handleSubmit() {
       <CardHeader>
         <CardTitle>Đăng nhập tài khoản Admin</CardTitle>
       </CardHeader>
+
       <CardContent>
         <form @submit.prevent="handleSubmit">
           <FieldGroup>
             <Field>
-              <FieldLabel for="email"> Email </FieldLabel>
+              <FieldLabel for="username"> Tên đăng nhập </FieldLabel>
+
               <Input
-                id="email"
-                v-model="email"
-                type="email"
-                placeholder="admin@example.com"
+                id="username"
+                v-model="username"
+                type="text"
+                name="username"
+                placeholder="Nhập tên đăng nhập"
                 autocomplete="username"
                 required
               />
             </Field>
+
             <Field>
-              <div class="flex items-center">
-                <FieldLabel for="password">Mật khẩu</FieldLabel>
-                <a
-                  href="#"
-                  class="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >Quên mật khẩu</a
-                >
-              </div>
+              <FieldLabel for="password"> Mật khẩu </FieldLabel>
+
               <Input
                 id="password"
                 v-model="password"
                 type="password"
+                name="password"
                 autocomplete="current-password"
                 required
               />
             </Field>
+
             <Field>
               <p
                 v-if="errorMessage"

@@ -1,50 +1,62 @@
+
 import { computed, ref } from "vue";
-import type { Admin } from "@/services/auth";
+import type { Admin, AuthSession } from "@/services/auth";
 
-const SESSION_KEY = "mock-admin";
+const SESSION_KEY = "auth-session";
 
-function readSession(): Admin | null {
+function readSession(): AuthSession | null {
   try {
     const value = sessionStorage.getItem(SESSION_KEY);
 
     if (!value) return null;
 
-    const admin = JSON.parse(value);
+    const session: AuthSession = JSON.parse(value);
 
     if (
-      typeof admin?.id === "string" &&
-      typeof admin?.name === "string" &&
-      typeof admin?.department === "string"
+      typeof session.accessToken === "string" &&
+      session.accessToken.length > 0 &&
+      typeof session.admin?.username === "string"
     ) {
-      return {
-        id: admin.id,
-        name: admin.name,
-        department: admin.department,
-      };
+      return session;
     }
+
   } catch {
-    // Ignore invalid saved mock data.
+    // Ignore invalid saved session data.
   }
 
   return null;
 }
 
-const currentAdmin = ref<Admin | null>(readSession());
-const isLoggedIn = computed(() => currentAdmin.value !== null);
+const session = ref<AuthSession | null>(readSession());
+
+const currentAdmin = computed<Admin | null>(
+  () => session.value?.admin ?? null,
+);
+
+const accessToken = computed(
+  () => session.value?.accessToken ?? null,
+);
+
+const isLoggedIn = computed(() => session.value !== null);
 
 export function useAuth() {
-  function startSession(admin: Admin) {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(admin));
-    currentAdmin.value = admin;
+  function startSession(authSession: AuthSession) {
+    sessionStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify(authSession),
+    );
+
+    session.value = authSession;
   }
 
   function logout() {
     sessionStorage.removeItem(SESSION_KEY);
-    currentAdmin.value = null;
+    session.value = null;
   }
 
   return {
     currentAdmin,
+    accessToken,
     isLoggedIn,
     startSession,
     logout,
