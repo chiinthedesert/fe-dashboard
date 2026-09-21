@@ -1,11 +1,18 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref } from "vue";
+
+import CandidatesTable from "@/components/candidates/CandidatesTable.vue";
+
+import { mockCandidates } from "@/mocks/candidates";
+import type { Candidate } from "@/types/candidate";
+
+const candidates = ref<Candidate[]>(
+  mockCandidates.map((candidate) => ({ ...candidate })),
+);
+</script>
 
 <template>
-  <div>
-    <h2 class="text-xl font-semibold">Danh sách thí sinh</h2>
-
-    <p class="mt-1 text-sm text-muted-foreground">
-      Nội dung quản lý thí sinh sẽ được xây dựng tại đây.
-    </p>
-  </div>
+  <section class="min-w-0">
+    <CandidatesTable :candidates="candidates" />
+  </section>
 </template>
