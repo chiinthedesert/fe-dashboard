@@ -1,6 +1,5 @@
-
 import { computed, ref } from "vue";
-import type { Admin, AuthSession } from "@/services/auth";
+import type { Admin, AuthSession } from "@/types/auth";
 
 const SESSION_KEY = "auth-session";
 
@@ -10,20 +9,23 @@ function readSession(): AuthSession | null {
 
     if (!value) return null;
 
-    const session: AuthSession = JSON.parse(value);
+    const savedSession: AuthSession = JSON.parse(value);
 
     if (
-      typeof session.accessToken === "string" &&
-      session.accessToken.length > 0 &&
-      typeof session.admin?.username === "string"
+      typeof savedSession.accessToken === "string" &&
+      savedSession.accessToken.length > 0 &&
+      typeof savedSession.admin?.username === "string" &&
+      typeof savedSession.expiresAt === "number" &&
+      Number.isFinite(savedSession.expiresAt) &&
+      Date.now() < savedSession.expiresAt
     ) {
-      return session;
+      return savedSession;
     }
-
   } catch {
-    // Ignore invalid saved session data.
+    // Ignore invalid session data.
   }
 
+  sessionStorage.removeItem(SESSION_KEY);
   return null;
 }
 
@@ -37,21 +39,78 @@ const accessToken = computed(
   () => session.value?.accessToken ?? null,
 );
 
-const isLoggedIn = computed(() => session.value !== null);
+const isLoggedIn = computed(
+  () => session.value !== null,
+);
+
+let expirationTimer: ReturnType<typeof setTimeout> | undefined;
+
+function clearSession() {
+  if (expirationTimer !== undefined) {
+    clearTimeout(expirationTimer);
+    expirationTimer = undefined;
+  }
+
+  sessionStorage.removeItem(SESSION_KEY);
+  session.value = null;
+}
+
+function scheduleExpiration() {
+  if (expirationTimer !== undefined) {
+    clearTimeout(expirationTimer);
+    expirationTimer = undefined;
+  }
+
+  if (!session.value) return;
+
+  const remainingTime =
+    session.value.expiresAt - Date.now();
+
+  if (remainingTime <= 0) {
+    clearSession();
+    return;
+  }
+
+  expirationTimer = setTimeout(
+    () => {
+      if (!session.value) return;
+
+      if (Date.now() >= session.value.expiresAt) {
+        clearSession();
+      } else {
+        scheduleExpiration();
+      }
+    },
+    Math.min(remainingTime, 2_147_483_647),
+  );
+}
+
+// Restore the expiration timer after a page refresh.
+scheduleExpiration();
 
 export function useAuth() {
   function startSession(authSession: AuthSession) {
+    clearSession();
+
     sessionStorage.setItem(
       SESSION_KEY,
       JSON.stringify(authSession),
     );
 
     session.value = authSession;
+
+    scheduleExpiration();
   }
 
-  function clearSession() {
-    sessionStorage.removeItem(SESSION_KEY);
-    session.value = null;
+  function ensureSession(): boolean {
+    if (!session.value) return false;
+
+    if (Date.now() >= session.value.expiresAt) {
+      clearSession();
+      return false;
+    }
+
+    return true;
   }
 
   return {
@@ -59,6 +118,7 @@ export function useAuth() {
     accessToken,
     isLoggedIn,
     startSession,
-    clearSession
+    clearSession,
+    ensureSession,
   };
 }

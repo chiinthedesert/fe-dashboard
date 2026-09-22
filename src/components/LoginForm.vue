@@ -69,6 +69,7 @@ async function handleSubmit() {
                 type="text"
                 name="username"
                 placeholder="Nhập tên đăng nhập"
+                class="placeholder:text-muted-foreground"
                 autocomplete="username"
                 required
               />

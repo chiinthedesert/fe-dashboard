@@ -1,24 +1,16 @@
+import { apiRequest } from "@/services/api";
 
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
+import type {
+  Admin,
+  AuthSession,
+  LoginCredentials,
+} from "@/types/auth";
 
-export interface Admin {
-  id: number;
-  username: string;
-  hoTen: string | null;
-  email: string | null;
-  soDienThoai: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AuthSession {
-  admin: Admin;
-  accessToken: string;
-  tokenType: string;
-}
+export type {
+  Admin,
+  AuthSession,
+  LoginCredentials,
+} from "@/types/auth";
 
 interface LoginResponse {
   accessToken: string;
@@ -27,79 +19,75 @@ interface LoginResponse {
   username: string;
 }
 
-interface ApiResponse<T> {
-  code: number;
-  status: string;
-  message: string;
-  data: T;
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
-
-async function getCurrentAdmin(
+// Retrieve the current administrator.
+export async function getCurrentAdmin(
   accessToken: string,
 ): Promise<Admin> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/admin/current`,
+  const data = await apiRequest<Admin>(
+    "/api/v1/admin/current",
     {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      token: accessToken,
     },
   );
 
-  if (!response.ok) {
-    throw new Error(
-      "Không thể lấy thông tin quản trị viên.",
-    );
-  }
-
-  const result: ApiResponse<Admin> = await response.json();
-
-  if (!result.data?.username) {
+  if (!data?.username) {
     throw new Error(
       "Thông tin quản trị viên không hợp lệ.",
     );
   }
 
-  return result.data;
+  // Only retain the fields needed by the frontend.
+  return {
+    id: data.id,
+    username: data.username,
+    hoTen: data.hoTen,
+    email: data.email,
+    soDienThoai: data.soDienThoai,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+  };
 }
 
+// Log in and create a session.
 export async function login(
   credentials: LoginCredentials,
 ): Promise<AuthSession> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/auth/login`,
+  const data = await apiRequest<LoginResponse>(
+    "/api/v1/auth/login",
     {
       method: "POST",
+      auth: false,
+
       headers: {
         "Content-Type": "application/json",
       },
+
       body: JSON.stringify(credentials),
     },
   );
 
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error(
-        "Tên đăng nhập hoặc mật khẩu không đúng.",
-      );
-    }
-
-    throw new Error(
-      "Không thể đăng nhập. Vui lòng thử lại.",
-    );
-  }
-
-  const result: ApiResponse<LoginResponse> = await response.json();
-
-  if (!result.data?.accessToken) {
+  if (!data?.accessToken) {
     throw new Error(
       "Không nhận được access token từ máy chủ.",
     );
   }
 
-  const { accessToken, tokenType } = result.data;
+  const {
+    accessToken,
+    tokenType,
+    expiresIn,
+  } = data;
+
+  if (
+    !Number.isFinite(expiresIn) ||
+    expiresIn <= 0
+  ) {
+    throw new Error(
+      "Thời hạn đăng nhập không hợp lệ.",
+    );
+  }
+
+  const expiresAt = Date.now() + expiresIn;
 
   const admin = await getCurrentAdmin(accessToken);
 
@@ -107,24 +95,19 @@ export async function login(
     admin,
     accessToken,
     tokenType: tokenType || "Bearer",
+    expiresAt,
   };
 }
 
-
+// Revoke the current JWT on the backend.
 export async function logout(
   accessToken: string,
 ): Promise<void> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/auth/logout`,
+  await apiRequest<void>(
+    "/api/v1/auth/logout",
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      token: accessToken,
     },
   );
-
-  if (!response.ok) {
-    throw new Error("Không thể đăng xuất khỏi máy chủ.");
-  }
 }

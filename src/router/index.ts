@@ -29,7 +29,6 @@ const router = createRouter({
         },
         {
           path: "dashboard",
-          name: "dashboard",
           component: DashboardView,
           meta: {
             title: "Dashboard Vận hành",
@@ -97,13 +96,15 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  const { isLoggedIn } = useAuth();
+  const { ensureSession } = useAuth();
 
-  if (to.meta.requiresAuth && !isLoggedIn.value) {
+  const isAuthenticated = ensureSession();
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
     return { name: "login" };
   }
 
-  if (to.name === "login" && isLoggedIn.value) {
+  if (to.name === "login" && isAuthenticated) {
     return { name: "dashboard-overview" };
   }
 });

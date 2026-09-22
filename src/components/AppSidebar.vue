@@ -87,10 +87,7 @@ async function handleLogout() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 as-child
-                :is-active="
-                  route.name === 'dashboard' ||
-                  route.path.startsWith('/dashboard/')
-                "
+                :is-active="route.path.startsWith('/dashboard/')"
                 @click="setOpenMobile(false)"
               >
                 <RouterLink to="/dashboard">
