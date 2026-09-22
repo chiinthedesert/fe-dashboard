@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, provide, ref } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
+
 import { Download } from "lucide-vue-next";
+
 import { Button } from "@/components/ui/button";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import Filter from "@/components/ui/filter/Filter.vue";
+
+import { getLastDaysRange } from "@/lib/dashboard-date";
+
+import type { DashboardFilter } from "@/types/dashboard-api";
+
+// Router and tabs
 
 const route = useRoute();
 const router = useRouter();
@@ -37,10 +47,22 @@ const activeTab = computed({
     }
   },
 });
+
+// Dashboard filters
+
+const dashboardFilter = ref<DashboardFilter>(getLastDaysRange(30));
+
+provide("dashboardFilter", dashboardFilter);
+
+function updateDashboardFilter(filter: DashboardFilter) {
+  dashboardFilter.value = filter;
+}
 </script>
+
 <template>
   <div class="flex min-w-0 flex-col gap-4">
     <!-- Tabs and export button -->
+
     <div class="flex min-w-0 items-center justify-between gap-4">
       <Tabs v-model="activeTab" class="min-w-0 flex-1">
         <div class="overflow-x-auto">
@@ -57,12 +79,20 @@ const activeTab = computed({
         </div>
       </Tabs>
 
-      <!-- Export button -->
-      <Button type="button" class="shrink-0 gap-2">
+      <Button type="button" class="shrink-0 gap-2" disabled>
         <Download class="size-4 shrink-0" />
         <span class="hidden sm:inline">Xuất báo cáo</span>
       </Button>
     </div>
+
+    <!-- Dashboard filters -->
+
+    <Filter
+      :model-value="dashboardFilter"
+      @update:model-value="updateDashboardFilter"
+    />
+
+    <!-- Dashboard content -->
 
     <RouterView />
   </div>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 import {
   Users,
   CreditCard,
@@ -10,139 +12,149 @@ import {
 } from "lucide-vue-next";
 
 import { Badge } from "@/components/ui/badge";
+
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
+
+import type { DashboardKpis } from "@/types/dashboard-api";
+
+// Props
+
+const props = defineProps<{
+  data: DashboardKpis | null;
+  loading: boolean;
+}>();
+
+// Formatters
+
+function formatNumber(value: number | null | undefined): string {
+  if (value == null) return "—";
+
+  return value.toLocaleString("vi-VN");
+}
+
+function formatPercent(
+  value: number | null | undefined,
+  signed = false,
+): string {
+  if (value == null) return "—";
+
+  const sign = signed && value > 0 ? "+" : "";
+
+  return `${sign}${value.toLocaleString("vi-VN", {
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+function formatCurrency(
+  amount: number | null | undefined,
+  currency: string | null | undefined,
+): string {
+  if (amount == null) return "—";
+
+  return `${formatNumber(amount)} ${currency || "VND"}`;
+}
+
+// Card data
+
+const cards = computed(() => {
+  const data = props.data;
+
+  return [
+    {
+      key: "registration",
+      title: "Tổng lượt đăng ký",
+      icon: Users,
+      value: formatNumber(data?.registration?.count),
+      growth: data?.registration?.growthRate,
+      footer: data?.registration?.growthLabel || "So với kỳ trước",
+    },
+    {
+      key: "conversion",
+      title: "Tỷ lệ chuyển đổi",
+      icon: CreditCard,
+      value: formatPercent(data?.conversion?.rate),
+      growth: data?.conversion?.deltaRate,
+      footer: data?.conversion?.description || "",
+    },
+    {
+      key: "revenue",
+      title: "Doanh thu tạm tính",
+      icon: Wallet,
+      value: formatCurrency(data?.revenue?.amount, data?.revenue?.currency),
+      growth: data?.revenue?.growthRate,
+      footer: data?.revenue?.description || "",
+    },
+    {
+      key: "leadFollowUp",
+      title: "Lead cần chăm sóc lại",
+      icon: UserRoundX,
+      value: formatNumber(data?.leadFollowUp?.count),
+      growth: data?.leadFollowUp?.growthRate,
+      footer: data?.leadFollowUp?.description || "",
+    },
+    {
+      key: "targetGap",
+      title: "Chênh lệch mục tiêu",
+      icon: Target,
+      value: formatNumber(data?.targetGap?.gap),
+      growth: data?.targetGap?.gapRate,
+      footer: data?.targetGap?.description || "",
+    },
+  ];
+});
 </script>
 
 <template>
   <div class="grid grid-cols-2 gap-4 md:grid-cols-3 min-[68rem]:grid-cols-5">
-    <Card class="min-w-0 gap-4">
+    <Card v-for="card in cards" :key="card.key" class="min-w-0 gap-4 py-4">
+      <!-- Card header -->
+
       <CardHeader class="flex flex-row items-center justify-between gap-2">
         <div class="rounded-lg bg-muted p-2">
-          <Users class="size-5 text-muted-foreground" />
+          <component :is="card.icon" class="size-5 text-muted-foreground" />
         </div>
 
         <Badge
+          v-if="card.growth != null"
           variant="outline"
-          class="gap-1 text-emerald-700 dark:text-emerald-400"
+          class="gap-1"
+          :class="
+            card.growth >= 0
+              ? 'text-emerald-700 dark:text-emerald-400'
+              : 'text-red-700 dark:text-red-400'
+          "
         >
-          <TrendingUp class="size-3.5" />
-          +8,2%
+          <TrendingUp v-if="card.growth >= 0" class="size-3.5" />
+
+          <TrendingDown v-else class="size-3.5" />
+
+          {{ formatPercent(card.growth, true) }}
         </Badge>
       </CardHeader>
 
-      <CardContent class="space-y-1">
-        <p class="text-3xl font-semibold tabular-nums">12.480</p>
-        <h3 class="text-sm font-medium text-muted-foreground">
-          Tổng lượt đăng ký
-        </h3>
-      </CardContent>
+      <!-- Card content -->
 
-      <CardFooter class="mt-auto text-xs text-muted-foreground">
-        So với kỳ trước
-      </CardFooter>
-    </Card>
-
-    <Card class="min-w-0 gap-4 py-4">
-      <CardHeader class="flex flex-row items-center justify-between gap-2">
-        <div class="rounded-lg bg-muted p-2">
-          <CreditCard class="size-5 text-muted-foreground" />
-        </div>
-
-        <Badge variant="outline" class="gap-1 text-red-700 dark:text-red-400">
-          <TrendingDown class="size-3.5" />
-          -2,1%
-        </Badge>
-      </CardHeader>
-
-      <CardContent class="space-y-1">
-        <p class="text-3xl font-semibold tabular-nums">64,3%</p>
-        <h3 class="text-sm font-medium text-muted-foreground">
-          Tỷ lệ chuyển đổi thanh toán
-        </h3>
-      </CardContent>
-
-      <CardFooter class="mt-auto text-xs text-muted-foreground">
-        Trên tổng số đăng ký
-      </CardFooter>
-    </Card>
-
-    <Card class="min-w-0 gap-4 py-4">
-      <CardHeader class="flex flex-row items-center justify-between gap-2">
-        <div class="rounded-lg bg-muted p-2">
-          <Wallet class="size-5 text-muted-foreground" />
-        </div>
-
-        <Badge
-          variant="outline"
-          class="gap-1 text-emerald-700 dark:text-emerald-400"
+      <CardContent class="min-w-0 space-y-1">
+        <p
+          class="wrap-break-word text-2xl font-semibold tabular-nums md:text-3xl"
         >
-          <TrendingUp class="size-3.5" />
-          +12,4%
-        </Badge>
-      </CardHeader>
+          {{ loading ? "—" : card.value }}
+        </p>
 
-      <CardContent class="space-y-1">
-        <p class="text-3xl font-semibold tabular-nums">324</p>
         <h3 class="text-sm font-medium text-muted-foreground">
-          Doanh thu tạm tính
+          {{ card.title }}
         </h3>
       </CardContent>
 
-      <CardFooter class="mt-auto text-xs text-muted-foreground">
-        Đơn vị triệu VND
-      </CardFooter>
-    </Card>
-
-    <Card class="min-w-0 gap-4 py-4">
-      <CardHeader class="flex flex-row items-center justify-between gap-2">
-        <div class="rounded-lg bg-muted p-2">
-          <UserRoundX class="size-5 text-muted-foreground" />
-        </div>
-
-        <Badge variant="outline" class="gap-1 text-red-700 dark:text-red-400">
-          <TrendingUp class="size-3.5" />
-          +5,6%
-        </Badge>
-      </CardHeader>
-
-      <CardContent class="space-y-1">
-        <p class="text-3xl font-semibold tabular-nums">842</p>
-        <h3 class="text-sm font-medium text-muted-foreground">
-          Lead cần chăm sóc lại
-        </h3>
-      </CardContent>
+      <!-- Card footer -->
 
       <CardFooter class="mt-auto text-xs text-muted-foreground">
-        Chưa hoàn tất thanh toán
-      </CardFooter>
-    </Card>
-
-    <Card class="min-w-0 gap-4 py-4">
-      <CardHeader class="flex flex-row items-center justify-between gap-2">
-        <div class="rounded-lg bg-muted p-2">
-          <Target class="size-5 text-muted-foreground" />
-        </div>
-
-        <Badge variant="outline" class="gap-1 text-red-700 dark:text-red-400">
-          <TrendingDown class="size-3.5" />
-          -9,3%
-        </Badge>
-      </CardHeader>
-
-      <CardContent class="space-y-1">
-        <p class="text-3xl font-semibold tabular-nums">-1.240</p>
-        <h3 class="text-sm font-medium text-muted-foreground">
-          Chênh lệch mục tiêu
-        </h3>
-      </CardContent>
-
-      <CardFooter class="mt-auto text-xs text-muted-foreground">
-        So với mục tiêu tuần
+        {{ loading ? "Đang tải..." : card.footer }}
       </CardFooter>
     </Card>
   </div>

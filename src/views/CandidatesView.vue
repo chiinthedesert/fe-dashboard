@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 
 import CandidatesTable from "@/components/candidates/CandidatesTable.vue";
 import CandidateFormDialog from "@/components/candidates/CandidateFormDialog.vue";
 import CandidateDeleteDialog from "@/components/candidates/CandidateDeleteDialog.vue";
+import CandidateBulkDeleteDialog from "@/components/candidates/CandidateBulkDeleteDialog.vue";
 
 import {
   getCandidates,
@@ -26,6 +27,9 @@ const candidates = ref<CandidateResponse[]>([]);
 const keyword = ref("");
 const searchKeyword = ref("");
 
+// Candidate filters
+const selectedStatus = ref("");
+
 const page = ref(1);
 const pageSize = ref(10);
 
@@ -39,15 +43,26 @@ const formOpen = ref(false);
 const saving = ref(false);
 const formError = ref("");
 const editingCandidate = ref<CandidateResponse | null>(null);
+
 const deleteOpen = ref(false);
 const deletingCandidate = ref<CandidateResponse | null>(null);
 const deleting = ref(false);
 const deleteError = ref("");
+
+const bulkDeleteOpen = ref(false);
+const selectedCandidateIds = ref<number[]>([]);
+const bulkDeleting = ref(false);
+const bulkDeleteError = ref("");
+
 const exporting = ref(false);
 const exportError = ref("");
 
 // Trigger a new request after creating a candidate.
 const refreshKey = ref(0);
+
+const candidatesTableRef = ref<InstanceType<typeof CandidatesTable> | null>(
+  null,
+);
 
 // Debounce search requests.
 watch(keyword, (value, _, onCleanup) => {
@@ -61,7 +76,7 @@ watch(keyword, (value, _, onCleanup) => {
 
 // Fetch candidates whenever the query changes.
 watch(
-  [page, pageSize, searchKeyword, refreshKey],
+  [page, pageSize, searchKeyword, selectedStatus, refreshKey],
   async (_, __, onCleanup) => {
     let cancelled = false;
 
@@ -75,6 +90,7 @@ watch(
     try {
       const result: CandidatePage = await getCandidates({
         keyword: searchKeyword.value || undefined,
+        trangThai: selectedStatus.value || undefined,
         page: page.value - 1,
         size: pageSize.value,
       });
@@ -108,6 +124,12 @@ watch(
 function changePageSize(size: number) {
   page.value = 1;
   pageSize.value = size;
+}
+
+// Candidate filters
+function changeStatus(value: string) {
+  page.value = 1;
+  selectedStatus.value = value;
 }
 
 // Open candidate creation dialog.
@@ -222,11 +244,11 @@ async function handleExportCandidates() {
   try {
     const file = await exportCandidates({
       keyword: searchKeyword.value || undefined,
+      trangThai: selectedStatus.value || undefined,
     });
 
-    // Create a temporary URL for the downloaded file.
+    // Download file
     const url = URL.createObjectURL(file);
-
     const link = document.createElement("a");
 
     link.href = url;
@@ -237,7 +259,7 @@ async function handleExportCandidates() {
     link.click();
     link.remove();
 
-    // Release the temporary URL.
+    // Release temporary URL
     setTimeout(() => {
       URL.revokeObjectURL(url);
     }, 1000);
@@ -248,13 +270,83 @@ async function handleExportCandidates() {
     exporting.value = false;
   }
 }
+
+// Bulk delete dialog
+function openBulkDeleteDialog(ids: number[]) {
+  if (bulkDeleting.value || ids.length === 0) return;
+
+  selectedCandidateIds.value = [...ids];
+  bulkDeleteError.value = "";
+  bulkDeleteOpen.value = true;
+}
+
+async function handleBulkDeleteCandidates() {
+  if (bulkDeleting.value || selectedCandidateIds.value.length === 0) {
+    return;
+  }
+
+  bulkDeleting.value = true;
+  bulkDeleteError.value = "";
+
+  const ids = [...selectedCandidateIds.value];
+
+  try {
+    const results = await Promise.allSettled(
+      ids.map((id) => deleteCandidate(id)),
+    );
+
+    const failedIds = ids.filter(
+      (_, index) => results[index]?.status === "rejected",
+    );
+
+    const deletedCount = ids.length - failedIds.length;
+
+    selectedCandidateIds.value = failedIds;
+
+    // Refresh the table after successful deletions.
+
+    if (deletedCount > 0) {
+      const remainingTotal = Math.max(0, totalElements.value - deletedCount);
+
+      const lastPage = Math.max(1, Math.ceil(remainingTotal / pageSize.value));
+
+      if (page.value > lastPage) {
+        page.value = lastPage;
+      } else {
+        refreshKey.value++;
+      }
+    }
+
+    // Keep the dialog open if some requests failed.
+
+    if (failedIds.length > 0) {
+      bulkDeleteError.value =
+        `Đã xóa ${deletedCount}/${ids.length} thí sinh. ` +
+        `${failedIds.length} thí sinh không thể xóa.`;
+
+      return;
+    }
+
+    // Close and reset after successful deletion.
+
+    bulkDeleteOpen.value = false;
+    selectedCandidateIds.value = [];
+
+    await nextTick();
+    candidatesTableRef.value?.clearSelection();
+  } finally {
+    bulkDeleting.value = false;
+  }
+}
 </script>
 
 <template>
   <section class="min-w-0">
     <CandidatesTable
+      ref="candidatesTableRef"
       :candidates="candidates"
       :keyword="keyword"
+      :status="selectedStatus"
       :page="page"
       :page-size="pageSize"
       :total="totalElements"
@@ -263,12 +355,14 @@ async function handleExportCandidates() {
       :error="errorMessage"
       :exporting="exporting"
       @update:keyword="keyword = $event"
+      @update:status="changeStatus"
       @update:page="page = $event"
       @update:page-size="changePageSize"
       @add="openAddDialog"
       @edit="openEditDialog"
       @delete="openDeleteDialog"
       @export-file="handleExportCandidates"
+      @delete-selected="openBulkDeleteDialog"
     />
 
     <p v-if="exportError" role="alert" class="mt-3 text-sm text-destructive">
@@ -291,6 +385,15 @@ async function handleExportCandidates() {
       :deleting="deleting"
       :error="deleteError"
       @confirm="handleDeleteCandidate"
+    />
+
+    <!-- Bulk delete confirmation -->
+    <CandidateBulkDeleteDialog
+      v-model:open="bulkDeleteOpen"
+      :count="selectedCandidateIds.length"
+      :deleting="bulkDeleting"
+      :error="bulkDeleteError"
+      @confirm="handleBulkDeleteCandidates"
     />
   </section>
 </template>

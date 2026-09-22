@@ -182,9 +182,29 @@ watch(currentPage, (page) => {
 
 <template>
   <Card class="min-w-0 w-full gap-4 py-4">
-    <CardHeader class="px-4">
-      <CardTitle>Chi tiết theo tỉnh / thành</CardTitle>
-      <CardDescription>Tiến độ đăng ký so với chỉ tiêu</CardDescription>
+    <CardHeader class="space-y-3 px-4">
+      <!-- Table header -->
+
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <CardTitle> Chi tiết theo tỉnh / thành </CardTitle>
+
+        <Badge variant="outline"> Dữ liệu minh họa </Badge>
+      </div>
+
+      <CardDescription>
+        Tiến độ đăng ký so với chỉ tiêu theo tỉnh / thành
+      </CardDescription>
+
+      <!-- Demo data notice -->
+
+      <div
+        role="note"
+        class="rounded-lg border border-dashed bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
+      >
+        Bảng này sử dụng dữ liệu mẫu để minh họa chức năng thống kê theo tỉnh /
+        thành. Số liệu chưa được kết nối với backend và không thay đổi theo bộ
+        lọc thời gian của dashboard.
+      </div>
     </CardHeader>
 
     <CardContent class="min-w-0 space-y-4 px-4">

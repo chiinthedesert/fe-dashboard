@@ -73,6 +73,7 @@ import TablePagination from "@/components/shared/TablePagination.vue";
 const props = defineProps<{
   candidates: CandidateResponse[];
   keyword: string;
+  status: string;
   page: number;
   pageSize: number;
   total: number;
@@ -86,6 +87,8 @@ const emit = defineEmits<{
   "update:keyword": [value: string];
   "update:page": [value: number];
   "update:page-size": [value: number];
+  "update:status": [value: string];
+  "delete-selected": [ids: number[]];
 
   add: [];
   view: [candidate: CandidateResponse];
@@ -145,6 +148,16 @@ const columns = columnHelper.columns([
   columnHelper.accessor("truongHoc", {
     header: "Trường học",
     sortFn: "text",
+  }),
+
+  columnHelper.accessor("tinhThanh", {
+    header: "Tỉnh / Thành phố",
+    enableSorting: false,
+  }),
+
+  columnHelper.accessor("bangDau", {
+    header: "Bảng đấu",
+    enableSorting: false,
   }),
 
   columnHelper.accessor("trangThai", {
@@ -236,6 +249,10 @@ function clearSelection() {
   selectedIds.value = new Set();
 }
 
+defineExpose({
+  clearSelection,
+});
+
 // Remove deleted candidates from selection.
 watch(
   () => props.candidates.map((candidate) => candidate.id),
@@ -248,14 +265,10 @@ watch(
   },
 );
 
-watch([() => props.page, () => props.keyword], () => {
+// Clear selection when the displayed dataset changes
+watch([() => props.page, () => props.keyword, () => props.status], () => {
   clearSelection();
 });
-
-function changePageSize(size: number) {
-  table.setPageSize(size);
-  table.setPageIndex(0);
-}
 
 // Use existing theme variants; custom status colors can come later.
 </script>
@@ -292,6 +305,29 @@ function changePageSize(size: number) {
           </div>
 
           <!-- Status filter -->
+          <Select
+            :model-value="status || 'all'"
+            @update:model-value="
+              (value) =>
+                emit(
+                  'update:status',
+                  value === 'all' ? '' : String(value ?? ''),
+                )
+            "
+          >
+            <SelectTrigger
+              class="w-full min-w-0"
+              aria-label="Lọc theo trạng thái thí sinh"
+            >
+              <SelectValue placeholder="Trạng thái" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="all"> Tất cả trạng thái </SelectItem>
+              <SelectItem value="CHO_HO_SO"> Chờ hồ sơ </SelectItem>
+              <SelectItem value="DA_DONG_PHI"> Đã đóng học phí </SelectItem>
+            </SelectContent>
+          </Select>
 
           <!-- Column visibility -->
           <DropdownMenu>
@@ -369,7 +405,7 @@ function changePageSize(size: number) {
         </div>
       </div>
 
-      <!-- Selection summary -->
+      <!-- Selection actions -->
       <div
         v-if="selectedCount > 0"
         class="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/50 px-3 py-2"
@@ -380,9 +416,27 @@ function changePageSize(size: number) {
           thí sinh
         </p>
 
-        <Button type="button" variant="ghost" size="sm" @click="clearSelection">
-          Bỏ chọn
-        </Button>
+        <div class="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            @click="clearSelection"
+          >
+            Bỏ chọn
+          </Button>
+
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            class="gap-2"
+            @click="emit('delete-selected', [...selectedIds])"
+          >
+            <Trash2 class="size-4" />
+            Xóa đã chọn
+          </Button>
+        </div>
       </div>
 
       <!-- Responsive table -->
@@ -531,6 +585,22 @@ function changePageSize(size: number) {
                   <span v-else-if="cell.column.id === 'truongHoc'">
                     {{ row.original.truongHoc || "—" }}
                   </span>
+
+                  <!-- Province -->
+
+                  <span v-else-if="cell.column.id === 'tinhThanh'">
+                    {{ row.original.tinhThanh || "—" }}
+                  </span>
+
+                  <!-- Exam board -->
+
+                  <Badge
+                    v-else-if="cell.column.id === 'bangDau'"
+                    variant="outline"
+                    class="whitespace-nowrap"
+                  >
+                    {{ row.original.bangDau || "—" }}
+                  </Badge>
 
                   <!-- Candidate status -->
                   <Badge

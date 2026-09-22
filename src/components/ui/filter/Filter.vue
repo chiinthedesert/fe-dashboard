@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
+
+import { ChevronDown } from "lucide-vue-next";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import {
   Select,
   SelectContent,
@@ -7,20 +13,80 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-vue-next";
+
+import { getLastDaysRange } from "@/lib/dashboard-date";
+
+import type { DashboardFilter } from "@/types/dashboard-api";
+
+// Props and events
+
+const props = defineProps<{
+  modelValue: DashboardFilter;
+}>();
+
+const emit = defineEmits<{
+  "update:modelValue": [value: DashboardFilter];
+}>();
+
+// Filter state
 
 const filtersOpen = ref(false);
 
-const region = ref("all");
-const competition = ref("all");
 const period = ref("30d");
+
+const customFrom = ref("");
+const customTo = ref("");
+
+// Period selection
+
+function changePeriod(value: string) {
+  period.value = value;
+
+  if (value === "7d") {
+    emit("update:modelValue", getLastDaysRange(7));
+    return;
+  }
+
+  if (value === "30d") {
+    emit("update:modelValue", getLastDaysRange(30));
+    return;
+  }
+
+  if (value === "all") {
+    emit("update:modelValue", {});
+    return;
+  }
+
+  if (value === "custom") {
+    customFrom.value = props.modelValue.from ?? "";
+    customTo.value = props.modelValue.to ?? "";
+  }
+}
+
+// Custom date range
+
+function applyCustomRange() {
+  if (!customFrom.value || !customTo.value) {
+    return;
+  }
+
+  if (customFrom.value > customTo.value) {
+    return;
+  }
+
+  emit("update:modelValue", {
+    from: customFrom.value,
+    to: customTo.value,
+  });
+}
 </script>
 
 <template>
   <div
     class="flex flex-col gap-3 rounded-xl border bg-card p-2 sm:flex-row sm:items-start sm:p-4"
   >
+    <!-- Mobile filter toggle -->
+
     <Button
       type="button"
       variant="ghost"
@@ -30,6 +96,7 @@ const period = ref("30d");
       @click="filtersOpen = !filtersOpen"
     >
       Bộ lọc
+
       <ChevronDown
         class="size-4 transition-transform"
         :class="{ 'rotate-180': filtersOpen }"
@@ -42,12 +109,16 @@ const period = ref("30d");
       Bộ lọc
     </span>
 
+    <!-- Filter controls -->
+
     <div
       id="dashboard-filters"
       class="w-full min-w-0 grid-cols-1 gap-x-4 gap-y-3 sm:grid sm:w-auto sm:grid-cols-[repeat(2,12rem)] lg:grid-cols-[repeat(3,12rem)]"
       :class="filtersOpen ? 'grid' : 'hidden'"
     >
-      <Select v-model="region">
+      <!-- Region -->
+
+      <Select model-value="all" disabled>
         <SelectTrigger class="w-full" aria-label="Khu vực">
           <SelectValue placeholder="Chọn khu vực" />
         </SelectTrigger>
@@ -60,7 +131,9 @@ const period = ref("30d");
         </SelectContent>
       </Select>
 
-      <Select v-model="competition">
+      <!-- Exam board -->
+
+      <Select model-value="all" disabled>
         <SelectTrigger class="w-full" aria-label="Bảng thi">
           <SelectValue placeholder="Chọn bảng thi" />
         </SelectTrigger>
@@ -72,7 +145,12 @@ const period = ref("30d");
         </SelectContent>
       </Select>
 
-      <Select v-model="period">
+      <!-- Time range -->
+
+      <Select
+        :model-value="period"
+        @update:model-value="(value) => changePeriod(String(value ?? ''))"
+      >
         <SelectTrigger class="w-full" aria-label="Khoảng thời gian">
           <SelectValue placeholder="Chọn thời gian" />
         </SelectTrigger>
@@ -81,9 +159,61 @@ const period = ref("30d");
           <SelectItem value="30d">30 ngày qua</SelectItem>
           <SelectItem value="7d">7 ngày qua</SelectItem>
           <SelectItem value="all">Từ đầu chương trình</SelectItem>
-          <SelectItem value="custom" disabled>Tuỳ chỉnh</SelectItem>
+          <SelectItem value="custom">Tuỳ chỉnh</SelectItem>
         </SelectContent>
       </Select>
+
+      <!-- Custom date range -->
+
+      <div
+        v-if="period === 'custom'"
+        class="grid min-w-0 grid-cols-1 gap-3 sm:col-span-2 sm:grid-cols-2 lg:col-span-3"
+      >
+        <div class="grid min-w-0 gap-2">
+          <label for="dashboard-from" class="text-sm font-medium">
+            Từ ngày
+          </label>
+
+          <Input
+            id="dashboard-from"
+            v-model="customFrom"
+            type="date"
+            class="w-full min-w-0"
+            :max="customTo || undefined"
+          />
+        </div>
+
+        <div class="grid min-w-0 gap-2">
+          <label for="dashboard-to" class="text-sm font-medium">
+            Đến ngày
+          </label>
+
+          <Input
+            id="dashboard-to"
+            v-model="customTo"
+            type="date"
+            class="w-full min-w-0"
+            :min="customFrom || undefined"
+          />
+        </div>
+
+        <p
+          v-if="customFrom && customTo && customFrom > customTo"
+          class="text-sm text-destructive sm:col-span-2"
+        >
+          Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.
+        </p>
+
+        <div class="sm:col-span-2">
+          <Button
+            type="button"
+            :disabled="!customFrom || !customTo || customFrom > customTo"
+            @click="applyCustomRange"
+          >
+            Áp dụng
+          </Button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
