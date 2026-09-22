@@ -29,11 +29,7 @@ import {
   Upload,
 } from "lucide-vue-next";
 
-import {
-  candidateStatuses,
-  type Candidate,
-  type CandidateStatus,
-} from "@/types/candidate";
+import type { CandidateResponse } from "@/types/candidate-api";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,45 +70,31 @@ import {
 
 import TablePagination from "@/components/shared/TablePagination.vue";
 
-// Props and events
 const props = defineProps<{
-  candidates: Candidate[];
+  candidates: CandidateResponse[];
+  keyword: string;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  loading: boolean;
+  error: string;
+  exporting: boolean;
 }>();
 
 const emit = defineEmits<{
+  "update:keyword": [value: string];
+  "update:page": [value: number];
+  "update:page-size": [value: number];
+
   add: [];
-  view: [candidate: Candidate];
-  edit: [candidate: Candidate];
-  delete: [candidate: Candidate];
+  view: [candidate: CandidateResponse];
+  edit: [candidate: CandidateResponse];
+  delete: [candidate: CandidateResponse];
+
   "import-file": [];
   "export-file": [];
 }>();
-
-// Search and status filter
-const candidateSearch = ref("");
-const selectedStatus = ref("all");
-
-const filteredCandidates = computed(() => {
-  const search = candidateSearch.value.trim().toLocaleLowerCase("vi-VN");
-
-  return props.candidates.filter((candidate) => {
-    const matchesStatus =
-      selectedStatus.value === "all" ||
-      candidate.status === selectedStatus.value;
-
-    const matchesSearch =
-      !search ||
-      [
-        String(candidate.id),
-        candidate.name,
-        candidate.email,
-        candidate.phone,
-        candidate.school,
-      ].some((value) => value.toLocaleLowerCase("vi-VN").includes(search));
-
-    return matchesStatus && matchesSearch;
-  });
-});
 
 // Table features
 const features = tableFeatures({
@@ -129,7 +111,7 @@ const features = tableFeatures({
   },
 });
 
-const columnHelper = createColumnHelper<typeof features, Candidate>();
+const columnHelper = createColumnHelper<typeof features, CandidateResponse>();
 
 const columns = columnHelper.columns([
   columnHelper.display({
@@ -144,7 +126,7 @@ const columns = columnHelper.columns([
     sortFn: "basic",
   }),
 
-  columnHelper.accessor("name", {
+  columnHelper.accessor("hoTen", {
     header: "Họ và tên",
     enableHiding: false,
     sortFn: "text",
@@ -155,17 +137,17 @@ const columns = columnHelper.columns([
     sortFn: "text",
   }),
 
-  columnHelper.accessor("phone", {
+  columnHelper.accessor("soDienThoai", {
     header: "Số điện thoại",
     enableSorting: false,
   }),
 
-  columnHelper.accessor("school", {
+  columnHelper.accessor("truongHoc", {
     header: "Trường học",
     sortFn: "text",
   }),
 
-  columnHelper.accessor("status", {
+  columnHelper.accessor("trangThai", {
     header: "Trạng thái",
     sortFn: "text",
   }),
@@ -180,8 +162,19 @@ const columns = columnHelper.columns([
 
 const table = useTable({
   features,
-  data: filteredCandidates,
+
+  data: computed(() => props.candidates),
+
   columns,
+
+  // Data is already paginated by the backend.
+  manualPagination: true,
+
+  // Do not sort only the currently loaded page.
+  manualSorting: true,
+
+  // Temporarily disable sorting until API sorting is connected.
+  enableSorting: false,
 
   initialState: {
     pagination: {
@@ -243,12 +236,6 @@ function clearSelection() {
   selectedIds.value = new Set();
 }
 
-// New search/filter starts on page 1 with no selection.
-watch([candidateSearch, selectedStatus], () => {
-  table.setPageIndex(0);
-  clearSelection();
-});
-
 // Remove deleted candidates from selection.
 watch(
   () => props.candidates.map((candidate) => candidate.id),
@@ -261,18 +248,9 @@ watch(
   },
 );
 
-// Keep pagination valid when rows are removed.
-watch(
-  () => filteredCandidates.value.length,
-  (total) => {
-    const { pageIndex, pageSize } = table.atoms.pagination.get();
-    const lastPage = Math.max(0, Math.ceil(total / pageSize) - 1);
-
-    if (pageIndex > lastPage) {
-      table.setPageIndex(lastPage);
-    }
-  },
-);
+watch([() => props.page, () => props.keyword], () => {
+  clearSelection();
+});
 
 function changePageSize(size: number) {
   table.setPageSize(size);
@@ -280,28 +258,6 @@ function changePageSize(size: number) {
 }
 
 // Use existing theme variants; custom status colors can come later.
-function statusStyle(status: CandidateStatus) {
-  switch (status) {
-    case "Đã đóng phí":
-      return { variant: "default" as const };
-
-    case "Đã nộp bài":
-      return {
-        variant: "secondary" as const,
-        class:
-          "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-      };
-
-    case "Đang xét duyệt":
-      return { variant: "secondary" as const };
-
-    case "Bị loại":
-      return { variant: "destructive" as const };
-
-    default:
-      return { variant: "outline" as const };
-  }
-}
 </script>
 
 <template>
@@ -327,34 +283,15 @@ function statusStyle(status: CandidateStatus) {
             />
 
             <Input
-              v-model="candidateSearch"
+              :model-value="keyword"
               placeholder="Tìm ID, tên, SĐT, email, trường..."
               aria-label="Tìm kiếm thí sinh"
               class="w-full min-w-0 truncate pr-3 pl-9 text-sm"
+              @update:model-value="emit('update:keyword', String($event ?? ''))"
             />
           </div>
 
           <!-- Status filter -->
-          <Select v-model="selectedStatus">
-            <SelectTrigger
-              class="w-full min-w-0 gap-2"
-              aria-label="Lọc theo trạng thái"
-            >
-              <SelectValue placeholder="Tất cả trạng thái" />
-            </SelectTrigger>
-
-            <SelectContent>
-              <SelectItem value="all"> Tất cả trạng thái </SelectItem>
-
-              <SelectItem
-                v-for="status in candidateStatuses"
-                :key="status"
-                :value="status"
-              >
-                {{ status }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
 
           <!-- Column visibility -->
           <DropdownMenu>
@@ -403,28 +340,31 @@ function statusStyle(status: CandidateStatus) {
             <span class="min-w-0 truncate"> Thêm thí sinh </span>
           </Button>
 
-          <!-- Import: event only -->
+          <!-- Import: disabled until backend supports browser uploads -->
           <Button
             type="button"
             variant="outline"
+            disabled
             class="w-full min-w-0 gap-2 @[64rem]:w-auto"
-            @click="emit('import-file')"
           >
             <Upload class="size-4 shrink-0" />
 
             <span class="min-w-0 truncate"> Nhập file </span>
           </Button>
 
-          <!-- Export: event only -->
+          <!-- Export candidates -->
           <Button
             type="button"
             variant="outline"
+            :disabled="exporting || loading"
             class="w-full min-w-0 gap-2 @[64rem]:w-auto"
             @click="emit('export-file')"
           >
             <Download class="size-4 shrink-0" />
 
-            <span class="min-w-0 truncate"> Xuất file </span>
+            <span class="min-w-0 truncate">
+              {{ exporting ? "Đang xuất..." : "Xuất file" }}
+            </span>
           </Button>
         </div>
       </div>
@@ -533,7 +473,29 @@ function statusStyle(status: CandidateStatus) {
           </TableHeader>
 
           <TableBody>
-            <template v-if="table.getRowModel().rows.length">
+            <!-- Loading state -->
+            <TableRow v-if="loading">
+              <TableCell
+                :colspan="table.getVisibleLeafColumns().length"
+                class="h-24 text-center text-muted-foreground"
+              >
+                Đang tải danh sách thí sinh...
+              </TableCell>
+            </TableRow>
+
+            <!-- Error state -->
+            <TableRow v-else-if="error">
+              <TableCell
+                :colspan="table.getVisibleLeafColumns().length"
+                class="h-24 text-center text-destructive"
+                role="alert"
+              >
+                {{ error }}
+              </TableCell>
+            </TableRow>
+
+            <!-- Candidate rows -->
+            <template v-else-if="table.getRowModel().rows.length">
               <TableRow
                 v-for="row in table.getRowModel().rows"
                 :key="row.original.id"
@@ -550,33 +512,33 @@ function statusStyle(status: CandidateStatus) {
                   <Checkbox
                     v-if="cell.column.id === 'selection'"
                     :model-value="selectedIds.has(row.original.id)"
-                    :aria-label="`Chọn ${row.original.name}`"
+                    :aria-label="`Chọn ${row.original.hoTen ?? 'thí sinh'}`"
                     @update:model-value="
                       (value) =>
                         toggleCandidate(row.original.id, value === true)
                     "
                   />
 
-                  <!-- Name wraps naturally -->
+                  <!-- Candidate name -->
                   <span
-                    v-else-if="cell.column.id === 'name'"
+                    v-else-if="cell.column.id === 'hoTen'"
                     class="font-medium"
                   >
-                    {{ row.original.name }}
+                    {{ row.original.hoTen || "—" }}
                   </span>
 
-                  <!-- School wraps without a forced minimum width -->
-                  <span v-else-if="cell.column.id === 'school'">
-                    {{ row.original.school }}
+                  <!-- School -->
+                  <span v-else-if="cell.column.id === 'truongHoc'">
+                    {{ row.original.truongHoc || "—" }}
                   </span>
 
-                  <!-- Keep badges intact, like the reference tables -->
+                  <!-- Candidate status -->
                   <Badge
-                    v-else-if="cell.column.id === 'status'"
-                    v-bind="statusStyle(row.original.status)"
+                    v-else-if="cell.column.id === 'trangThai'"
+                    variant="outline"
                     class="whitespace-nowrap"
                   >
-                    {{ row.original.status }}
+                    {{ row.original.trangThai || "—" }}
                   </Badge>
 
                   <!-- Actions -->
@@ -584,32 +546,36 @@ function statusStyle(status: CandidateStatus) {
                     v-else-if="cell.column.id === 'actions'"
                     class="flex items-center justify-center gap-1"
                   >
+                    <!-- View candidate -->
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      :aria-label="`Xem ${row.original.name}`"
+                      disabled
+                      :aria-label="`Xem ${row.original.hoTen ?? 'thí sinh'}`"
                       @click="emit('view', row.original)"
                     >
                       <Eye class="size-4" />
                     </Button>
 
+                    <!-- Edit candidate -->
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      :aria-label="`Chỉnh sửa ${row.original.name}`"
+                      :aria-label="`Chỉnh sửa ${row.original.hoTen ?? 'thí sinh'}`"
                       @click="emit('edit', row.original)"
                     >
                       <Pencil class="size-4" />
                     </Button>
 
+                    <!-- Delete candidate -->
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       class="text-destructive hover:text-destructive"
-                      :aria-label="`Xóa ${row.original.name}`"
+                      :aria-label="`Xóa ${row.original.hoTen ?? 'thí sinh'}`"
                       @click="emit('delete', row.original)"
                     >
                       <Trash2 class="size-4" />
@@ -622,15 +588,17 @@ function statusStyle(status: CandidateStatus) {
                     class="text-muted-foreground"
                     :class="{
                       'tabular-nums':
-                        cell.column.id === 'id' || cell.column.id === 'phone',
+                        cell.column.id === 'id' ||
+                        cell.column.id === 'soDienThoai',
                     }"
                   >
-                    {{ cell.getValue() }}
+                    {{ cell.getValue() ?? "—" }}
                   </span>
                 </TableCell>
               </TableRow>
             </template>
 
+            <!-- Empty state -->
             <TableRow v-else>
               <TableCell
                 :colspan="table.getVisibleLeafColumns().length"
@@ -644,13 +612,13 @@ function statusStyle(status: CandidateStatus) {
       </div>
 
       <TablePagination
-        :page="table.atoms.pagination.get().pageIndex + 1"
-        :page-count="Math.max(1, table.getPageCount())"
-        :page-size="table.atoms.pagination.get().pageSize"
-        :total="filteredCandidates.length"
+        :page="page"
+        :page-count="Math.max(1, totalPages)"
+        :page-size="pageSize"
+        :total="total"
         item-label="thí sinh"
-        @update:page="table.setPageIndex($event - 1)"
-        @update:page-size="changePageSize"
+        @update:page="emit('update:page', $event)"
+        @update:page-size="emit('update:page-size', $event)"
       />
     </CardContent>
   </Card>

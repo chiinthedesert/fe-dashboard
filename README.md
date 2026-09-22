@@ -12,6 +12,9 @@ Frontend cho hệ thống dashboard quản trị **Python Master**, được xâ
 - Lucide Vue Next
 
 ## Trạng thái hiện tại
+### Vấn đề còn cần BE
+- Các kiểu giữ liệu default (trường trangThai)?
+- API import?
 
 Backend API, dữ liệu thật và chức năng đăng nhập quản trị viên sẽ được tích hợp sau. Thắc mắc hỏi tự thân search, hỏi AI hoặc hỏi Chí (hiện tại cũng chả biết gì, đang cố)
 
