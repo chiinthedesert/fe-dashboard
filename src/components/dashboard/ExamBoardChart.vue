@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 import type { ChartConfig } from "@/components/ui/chart";
+import type { DashboardEducationLevel } from "@/types/dashboard-api";
 
 import { Donut } from "@unovis/ts";
 import { VisDonut, VisSingleContainer } from "@unovis/vue";
@@ -19,110 +22,177 @@ import {
   componentToString,
 } from "@/components/ui/chart";
 
-import { examBoardData } from "@/mocks/dashboardCharts";
+// Props
 
-type Data = (typeof examBoardData)[number];
+const props = defineProps<{
+  educationLevels: DashboardEducationLevel[];
+}>();
 
-const chartConfig = {
-  count: {
-    label: "Số thí sinh",
-    color: undefined,
-  },
-  boardA: {
-    label: "Bảng A",
-    color: "var(--chart-1)",
-  },
-  boardB: {
-    label: "Bảng B",
-    color: "var(--chart-2)",
-  },
-} satisfies ChartConfig;
+// Chart data
 
-const total = examBoardData.reduce((sum, item) => sum + item.count, 0);
+const chartData = computed(() =>
+  props.educationLevels
+    .filter((item) => item.count > 0)
+    .map((item, index) => ({
+      ...item,
+      key: `board${index}`,
+      fill: `var(--color-board${index})`,
+    })),
+);
+
+type Data = (typeof chartData.value)[number];
+
+// Chart configuration
+
+function getBoardLabel(item: DashboardEducationLevel): string {
+  if (item.code === "TABLE_A") return "Bảng A";
+  if (item.code === "TABLE_B") return "Bảng B";
+
+  return item.name;
+}
+
+const chartConfig = computed<ChartConfig>(() => {
+  const config: ChartConfig = {
+    count: {
+      label: "Số thí sinh",
+      color: undefined,
+    },
+  };
+
+  chartData.value.forEach((item, index) => {
+    config[item.key] = {
+      label: getBoardLabel(item),
+      color: `var(--chart-${(index % 5) + 1})`,
+    };
+  });
+
+  return config;
+});
+
+// Summary
+
+const total = computed(() =>
+  chartData.value.reduce((sum, item) => sum + item.count, 0),
+);
+
+// Formatters
+
+const numberFormatter = new Intl.NumberFormat("vi-VN");
+
+const percentageFormatter = new Intl.NumberFormat("vi-VN", {
+  maximumFractionDigits: 1,
+});
 
 function getPercentage(count: number): string {
-  if (total === 0) return "0%";
+  if (total.value === 0) return "0%";
 
-  return `${((count / total) * 100).toFixed(1)}%`;
+  return `${percentageFormatter.format((count / total.value) * 100)}%`;
 }
 
-function getBoardColor(board: string): string {
-  return board === "Bảng A"
-    ? chartConfig.boardA.color
-    : chartConfig.boardB.color;
-}
+// Tooltip
 
-const renderTooltip = componentToString(chartConfig, ChartTooltipContent, {
-  hideLabel: true,
-})!;
-
-const tooltipTriggers = {
-  [Donut.selectors.segment]: (d: { data: Data }) => {
-    const item = d.data;
-
-    const key = item.board === "Bảng A" ? "boardA" : "boardB";
-
-    return renderTooltip(
-      {
-        [key]: item.count,
-      },
-      0,
-    );
-  },
-};
+const tooltipTriggers = computed(() => ({
+  [Donut.selectors.segment]: componentToString(
+    chartConfig.value,
+    ChartTooltipContent,
+    { hideLabel: true },
+  )!,
+}));
 </script>
 
 <template>
-  <Card class="flex h-full min-w-0 w-full flex-col">
-    <CardHeader>
-      <CardTitle>Phân bổ theo bảng thi</CardTitle>
+  <Card class="flex min-w-0 flex-col gap-4">
+    <!-- Chart header -->
 
-      <CardDescription> Tỷ trọng đăng ký Bảng A / Bảng B </CardDescription>
+    <CardHeader>
+      <CardTitle>Phân bố theo bảng thi</CardTitle>
+
+      <CardDescription>
+        Số lượng và tỷ trọng thí sinh theo bảng thi
+      </CardDescription>
     </CardHeader>
 
-    <CardContent
-      class="flex min-w-0 flex-1 flex-col items-center justify-center gap-4"
-    >
-      <ChartContainer
-        :config="chartConfig"
-        class="aspect-auto h-64 w-full min-w-0"
-      >
-        <VisSingleContainer :data="examBoardData">
-          <VisDonut
-            :value="(d: Data) => d.count"
-            :color="(d: Data) => getBoardColor(d.board)"
-            :arc-width="50"
-            :pad-angle="0"
-            :corner-radius="0"
-          />
+    <!-- Chart content -->
 
-          <ChartTooltip :triggers="tooltipTriggers" />
-        </VisSingleContainer>
-      </ChartContainer>
+    <CardContent class="min-w-0">
+      <!-- Empty state -->
 
-      <!-- Legend -->
       <div
-        class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm"
+        v-if="total === 0"
+        class="flex h-64 items-center justify-center text-sm text-muted-foreground"
       >
-        <div
-          v-for="item in examBoardData"
-          :key="item.board"
-          class="flex items-center gap-2"
+        Không có dữ liệu bảng thi trong khoảng thời gian này.
+      </div>
+
+      <!-- Pie chart and legend -->
+
+      <div
+        v-else
+        class="grid min-w-0 grid-cols-1 items-center gap-6 md:grid-cols-2"
+      >
+        <!-- Pie chart -->
+
+        <ChartContainer
+          :config="chartConfig"
+          class="mx-auto aspect-square size-64 min-w-0"
         >
-          <span
-            class="size-3 shrink-0 rounded-xs"
-            :style="{
-              backgroundColor: getBoardColor(item.board),
-            }"
-          />
+          <VisSingleContainer
+            :data="chartData"
+            :margin="{ top: 20, bottom: 20 }"
+          >
+            <VisDonut
+              :value="(d: Data) => d.count"
+              :color="(d: Data) => d.fill"
+              :arc-width="0"
+              :pad-angle="0"
+              :corner-radius="0"
+            />
 
-          <span class="text-muted-foreground">
-            {{ item.board }}
-          </span>
+            <ChartTooltip :triggers="tooltipTriggers" />
+          </VisSingleContainer>
+        </ChartContainer>
 
-          <span class="font-medium tabular-nums">
-            {{ getPercentage(item.count) }}
-          </span>
+        <!-- Legend -->
+
+        <div class="mx-auto flex w-full max-w-xs min-w-0 flex-col gap-4 px-4">
+          <div
+            v-for="item in chartData"
+            :key="item.key"
+            class="flex items-center gap-3"
+          >
+            <div
+              class="size-3 shrink-0 rounded-xs"
+              :style="{
+                backgroundColor: chartConfig[item.key]?.color,
+              }"
+            />
+
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium">
+                {{ getBoardLabel(item) }}
+              </p>
+
+              <p class="text-xs text-muted-foreground tabular-nums">
+                {{ numberFormatter.format(item.count) }} thí sinh
+              </p>
+            </div>
+
+            <!-- Board percentage -->
+
+            <span class="shrink-0 text-base font-semibold tabular-nums">
+              {{ getPercentage(item.count) }}
+            </span>
+          </div>
+
+          <!-- Total candidates -->
+
+          <div class="border-t pt-3">
+            <p class="text-sm text-muted-foreground">Tổng số thí sinh</p>
+
+            <p class="text-2xl font-semibold tabular-nums">
+              {{ numberFormatter.format(total) }}
+            </p>
+          </div>
         </div>
       </div>
     </CardContent>

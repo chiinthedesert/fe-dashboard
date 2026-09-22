@@ -138,7 +138,7 @@ function formatPercentage(value: number): string {
 
         <!-- Legend -->
 
-        <div class="mx-auto flex w-full max-w-xs min-w-0 flex-col gap-4">
+        <div class="mx-auto flex w-full max-w-xs min-w-0 flex-col gap-4 px-4">
           <div
             v-for="region in chartData"
             :key="region.key"

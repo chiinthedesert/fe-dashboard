@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ChartConfig } from "@/components/ui/chart";
-
+import { Badge } from "@/components/ui/badge";
 import { VisAxis, VisGroupedBar, VisXYContainer } from "@unovis/vue";
 
 import {
@@ -45,12 +45,27 @@ function formatCount(value: number): string {
 
 <template>
   <Card class="flex h-full min-w-0 w-full flex-col">
-    <CardHeader>
-      <CardTitle>Phân bổ theo nhóm tuổi</CardTitle>
+    <CardHeader class="gap-3">
+      <!-- Chart title -->
 
-      <CardDescription>
-        Số lượng thí sinh đăng ký theo nhóm tuổi
-      </CardDescription>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <CardTitle> Phân bố theo nhóm tuổi </CardTitle>
+
+        <Badge variant="outline"> Dữ liệu minh họa </Badge>
+      </div>
+
+      <CardDescription> Số lượng thí sinh theo từng nhóm tuổi </CardDescription>
+
+      <!-- Demo data notice -->
+
+      <div
+        role="note"
+        class="rounded-lg border border-dashed bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
+      >
+        Biểu đồ này sử dụng dữ liệu mẫu để minh họa chức năng thống kê độ tuổi.
+        Backend hiện chưa cung cấp số lượng thí sinh theo từng nhóm tuổi và biểu
+        đồ không thay đổi theo bộ lọc thời gian.
+      </div>
     </CardHeader>
 
     <CardContent class="flex min-w-0 flex-1 items-center">
