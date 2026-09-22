@@ -6,6 +6,7 @@ import DashboardView from "@/views/DashboardView.vue";
 import CandidatesView from "@/views/CandidatesView.vue";
 import PartnersView from "@/views/PartnersView.vue";
 import LoginView from "@/views/LoginView.vue";
+import SettingsView from "@/views/SettingsView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -84,6 +85,15 @@ const router = createRouter({
             title: "Quản lý Đối tác",
             description:
               "Theo dõi hợp tác và tài trợ cho cuộc thi Python Master",
+          },
+        },
+        {
+          path: "settings",
+          name: "settings",
+          component: SettingsView,
+          meta: {
+            title: "Cài đặt",
+            description: "Quản lý tài khoản, thông báo và bảo mật hệ thống",
           },
         },
       ],

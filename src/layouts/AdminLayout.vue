@@ -3,6 +3,7 @@ import AppSidebar from "@/components/AppSidebar.vue";
 import { computed } from "vue";
 import { RouterView, useRoute } from "vue-router";
 import ThemeToggle from "@/components/shared/ThemeToggle.vue";
+import { useIdleLogout } from "@/composables/useIdleLogout";
 
 import {
   SidebarInset,
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const route = useRoute();
+useIdleLogout();
 
 const pageTitle = computed(() =>
   String(route.meta.title ?? "Dashboard Vận hành"),

@@ -89,6 +89,15 @@ function scheduleExpiration() {
 scheduleExpiration();
 
 export function useAuth() {
+  function updateCurrentAdmin(admin: Admin) {
+    if (!session.value) return;
+
+    // Preserve the token and expiry while refreshing the sidebar/profile.
+    const updated = { ...session.value, admin };
+    session.value = updated;
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(updated));
+  }
+
   function startSession(authSession: AuthSession) {
     clearSession();
 
@@ -118,6 +127,7 @@ export function useAuth() {
     accessToken,
     isLoggedIn,
     startSession,
+    updateCurrentAdmin,
     clearSession,
     ensureSession,
   };

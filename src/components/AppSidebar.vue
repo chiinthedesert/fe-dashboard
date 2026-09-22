@@ -25,6 +25,7 @@ import {
   ShieldUser,
   LogOut,
   ChevronsUpDown,
+  Settings,
 } from "lucide-vue-next";
 import sotatekIcon from "@/assets/sotatekIcon.png";
 const { setOpenMobile } = useSidebar();
@@ -122,6 +123,18 @@ async function handleLogout() {
                 </RouterLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                as-child
+                :is-active="route.name === 'settings'"
+                @click="setOpenMobile(false)"
+              >
+                <RouterLink to="/settings">
+                  <Settings />
+                  <span>Cài đặt</span>
+                </RouterLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -158,6 +171,12 @@ async function handleLogout() {
               :side-offset="8"
               class="w-(--reka-dropdown-menu-trigger-width)"
             >
+              <DropdownMenuItem as-child>
+                <RouterLink to="/settings" @click="setOpenMobile(false)">
+                  <Settings class="size-4" />
+                  <span>Cài đặt</span>
+                </RouterLink>
+              </DropdownMenuItem>
               <DropdownMenuItem @select="handleLogout">
                 <LogOut class="size-4" />
                 <span>Đăng xuất</span>

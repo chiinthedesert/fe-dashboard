@@ -1,7 +1,18 @@
 <script setup lang="ts">
 import { watch } from "vue";
 import { RouterView, useRouter } from "vue-router";
+import { useDark } from "@vueuse/core";
+
 import { useAuth } from "@/composables/useAuth";
+
+// Theme
+
+useDark({
+  initialValue: "dark",
+  storageKey: "dashboard-theme",
+});
+
+// Authentication
 
 const router = useRouter();
 const { isLoggedIn } = useAuth();
