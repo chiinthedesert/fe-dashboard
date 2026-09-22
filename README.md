@@ -13,8 +13,6 @@ Frontend cho hệ thống dashboard quản trị **Python Master**, được xâ
 
 ## Trạng thái hiện tại
 ### Vấn đề còn cần BE
-- Các kiểu giữ liệu default (trường trangThai)?
-- API import?
 
 Backend API, dữ liệu thật và chức năng đăng nhập quản trị viên sẽ được tích hợp sau. Thắc mắc hỏi tự thân search, hỏi AI hoặc hỏi Chí (hiện tại cũng chả biết gì, đang cố)
 
@@ -26,11 +24,12 @@ Backend API, dữ liệu thật và chức năng đăng nhập quản trị viê
 - [x] Quản Lý Thí Sinh
 - [x] Quản Lý Đối Tác
 - [x] Style lại màu và theme
-- [ ] Tích Hợp API dữ liệu thật
+- [x] Tích Hợp API dữ liệu thật
     - [x] Authentication
-    - [ ] Dashboard
-    - [ ] Thi sinh
-    - [ ] Doi tac
+    - [x] Dashboard
+    - [x] Thi sinh
+    - [x] Doi tac
+- [ ] Cài đặt View
 
 ## Yêu cầu trước khi cài đặt
 
