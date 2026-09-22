@@ -5,12 +5,6 @@ import {
   FlexRender,
   columnVisibilityFeature,
   createColumnHelper,
-  createPaginatedRowModel,
-  createSortedRowModel,
-  rowPaginationFeature,
-  rowSortingFeature,
-  sortFn_basic,
-  sortFn_text,
   tableFeatures,
   useTable,
 } from "@tanstack/vue-table";
@@ -70,49 +64,55 @@ import {
 
 import TablePagination from "@/components/shared/TablePagination.vue";
 
+// Props and events
+
 const props = defineProps<{
   candidates: CandidateResponse[];
+
   keyword: string;
   status: string;
+
   page: number;
   pageSize: number;
   total: number;
   totalPages: number;
+
+  sortBy: string;
+  sortDir: "asc" | "desc";
+
   loading: boolean;
   error: string;
   exporting: boolean;
+  importing: boolean;
 }>();
 
 const emit = defineEmits<{
   "update:keyword": [value: string];
+  "update:status": [value: string];
+
   "update:page": [value: number];
   "update:page-size": [value: number];
-  "update:status": [value: string];
-  "delete-selected": [ids: number[]];
+
+  sort: [field: string];
 
   add: [];
   view: [candidate: CandidateResponse];
   edit: [candidate: CandidateResponse];
   delete: [candidate: CandidateResponse];
 
+  "delete-selected": [ids: number[]];
+
   "import-file": [];
   "export-file": [];
 }>();
 
 // Table features
+
 const features = tableFeatures({
   columnVisibilityFeature,
-  rowPaginationFeature,
-  rowSortingFeature,
-
-  paginatedRowModel: createPaginatedRowModel(),
-  sortedRowModel: createSortedRowModel(),
-
-  sortFns: {
-    text: sortFn_text,
-    basic: sortFn_basic,
-  },
 });
+
+// Table columns
 
 const columnHelper = createColumnHelper<typeof features, CandidateResponse>();
 
@@ -121,57 +121,49 @@ const columns = columnHelper.columns([
     id: "selection",
     header: "",
     enableHiding: false,
-    enableSorting: false,
   }),
 
   columnHelper.accessor("id", {
     header: "ID",
-    sortFn: "basic",
   }),
 
   columnHelper.accessor("hoTen", {
     header: "Họ và tên",
     enableHiding: false,
-    sortFn: "text",
   }),
 
   columnHelper.accessor("email", {
     header: "Email",
-    sortFn: "text",
   }),
 
   columnHelper.accessor("soDienThoai", {
     header: "Số điện thoại",
-    enableSorting: false,
   }),
 
   columnHelper.accessor("truongHoc", {
     header: "Trường học",
-    sortFn: "text",
   }),
 
   columnHelper.accessor("tinhThanh", {
     header: "Tỉnh / Thành phố",
-    enableSorting: false,
   }),
 
   columnHelper.accessor("bangDau", {
     header: "Bảng đấu",
-    enableSorting: false,
   }),
 
   columnHelper.accessor("trangThai", {
     header: "Trạng thái",
-    sortFn: "text",
   }),
 
   columnHelper.display({
     id: "actions",
     header: "Thao tác",
     enableHiding: false,
-    enableSorting: false,
   }),
 ]);
+
+// Table instance
 
 const table = useTable({
   features,
@@ -179,25 +171,18 @@ const table = useTable({
   data: computed(() => props.candidates),
 
   columns,
-
-  // Data is already paginated by the backend.
-  manualPagination: true,
-
-  // Do not sort only the currently loaded page.
-  manualSorting: true,
-
-  // Temporarily disable sorting until API sorting is connected.
-  enableSorting: false,
-
-  initialState: {
-    pagination: {
-      pageIndex: 0,
-      pageSize: 10,
-    },
-  },
 });
 
-// Multiple selection, stored by candidate ID
+// Server-side sorting
+
+const sortableColumns = new Set(["id", "hoTen", "email", "truongHoc"]);
+
+function isSortable(id: string): boolean {
+  return sortableColumns.has(id);
+}
+
+// Row selection
+
 const selectedIds = ref<Set<number>>(new Set());
 
 const selectedCount = computed(() => selectedIds.value.size);
@@ -209,15 +194,24 @@ const currentPageIds = computed(() =>
 const pageSelection = computed<boolean | "indeterminate">(() => {
   const ids = currentPageIds.value;
 
-  if (!ids.length) return false;
+  if (ids.length === 0) {
+    return false;
+  }
 
   const selectedOnPage = ids.filter((id) => selectedIds.value.has(id)).length;
 
-  if (selectedOnPage === 0) return false;
-  if (selectedOnPage === ids.length) return true;
+  if (selectedOnPage === 0) {
+    return false;
+  }
+
+  if (selectedOnPage === ids.length) {
+    return true;
+  }
 
   return "indeterminate";
 });
+
+// Selection actions
 
 function toggleCandidate(id: number, checked: boolean) {
   const next = new Set(selectedIds.value);
@@ -253,7 +247,23 @@ defineExpose({
   clearSelection,
 });
 
-// Remove deleted candidates from selection.
+// Reset selection when the displayed dataset changes
+
+watch(
+  [
+    () => props.page,
+    () => props.keyword,
+    () => props.status,
+    () => props.sortBy,
+    () => props.sortDir,
+  ],
+  () => {
+    clearSelection();
+  },
+);
+
+// Remove selected IDs that are no longer displayed
+
 watch(
   () => props.candidates.map((candidate) => candidate.id),
   (ids) => {
@@ -264,19 +274,14 @@ watch(
     );
   },
 );
-
-// Clear selection when the displayed dataset changes
-watch([() => props.page, () => props.keyword, () => props.status], () => {
-  clearSelection();
-});
-
-// Use existing theme variants; custom status colors can come later.
 </script>
 
 <template>
   <Card class="min-w-0 w-full gap-4 py-4">
+    <!-- Card header -->
+
     <CardHeader class="px-4">
-      <CardTitle>Bảng dữ liệu thí sinh tập trung</CardTitle>
+      <CardTitle> Bảng dữ liệu thí sinh tập trung </CardTitle>
 
       <CardDescription>
         Quản lý toàn bộ hồ sơ thí sinh dự thi Python Master.
@@ -285,11 +290,13 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
 
     <CardContent class="min-w-0 space-y-4 px-4">
       <!-- Search, filter and actions -->
+
       <div class="@container min-w-0">
         <div
           class="grid min-w-0 grid-cols-2 gap-3 @[36rem]:grid-cols-3 @[64rem]:grid-cols-[minmax(12rem,1fr)_11rem_10rem_auto_auto_auto] @[64rem]:items-center"
         >
           <!-- Search -->
+
           <div class="relative min-w-0">
             <Search
               class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -305,6 +312,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
           </div>
 
           <!-- Status filter -->
+
           <Select
             :model-value="status || 'all'"
             @update:model-value="
@@ -324,12 +332,15 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
 
             <SelectContent>
               <SelectItem value="all"> Tất cả trạng thái </SelectItem>
+
               <SelectItem value="CHO_HO_SO"> Chờ hồ sơ </SelectItem>
+
               <SelectItem value="DA_DONG_PHI"> Đã đóng học phí </SelectItem>
             </SelectContent>
           </Select>
 
           <!-- Column visibility -->
+
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button
@@ -366,6 +377,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
           </DropdownMenu>
 
           <!-- Add candidate -->
+
           <Button
             type="button"
             class="w-full min-w-0 gap-2 @[64rem]:w-auto"
@@ -376,19 +388,24 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
             <span class="min-w-0 truncate"> Thêm thí sinh </span>
           </Button>
 
-          <!-- Import: disabled until backend supports browser uploads -->
+          <!-- Import file -->
+
           <Button
             type="button"
             variant="outline"
-            disabled
+            :disabled="importing || loading"
             class="w-full min-w-0 gap-2 @[64rem]:w-auto"
+            @click="emit('import-file')"
           >
             <Upload class="size-4 shrink-0" />
 
-            <span class="min-w-0 truncate"> Nhập file </span>
+            <span class="min-w-0 truncate">
+              {{ importing ? "Đang nhập..." : "Nhập file" }}
+            </span>
           </Button>
 
           <!-- Export candidates -->
+
           <Button
             type="button"
             variant="outline"
@@ -406,13 +423,16 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
       </div>
 
       <!-- Selection actions -->
+
       <div
         v-if="selectedCount > 0"
         class="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/50 px-3 py-2"
       >
         <p class="text-sm" role="status">
           Đã chọn
-          <span class="font-medium">{{ selectedCount }}</span>
+          <span class="font-medium">
+            {{ selectedCount }}
+          </span>
           thí sinh
         </p>
 
@@ -434,14 +454,18 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
             @click="emit('delete-selected', [...selectedIds])"
           >
             <Trash2 class="size-4" />
+
             Xóa đã chọn
           </Button>
         </div>
       </div>
 
       <!-- Responsive table -->
+
       <div class="min-w-0 max-w-full overflow-x-auto rounded-md border">
         <Table class="w-full">
+          <!-- Table header -->
+
           <TableHeader>
             <TableRow
               v-for="headerGroup in table.getHeaderGroups()"
@@ -456,30 +480,32 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                   'text-center': header.column.id === 'actions',
                 }"
                 :aria-sort="
-                  header.column.getCanSort()
-                    ? header.column.getIsSorted() === 'asc'
-                      ? 'ascending'
-                      : header.column.getIsSorted() === 'desc'
-                        ? 'descending'
-                        : 'none'
+                  isSortable(header.column.id)
+                    ? sortBy === header.column.id
+                      ? sortDir === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
                     : undefined
                 "
               >
                 <template v-if="!header.isPlaceholder">
                   <!-- Select current page -->
+
                   <Checkbox
                     v-if="header.column.id === 'selection'"
                     :model-value="pageSelection"
-                    :disabled="currentPageIds.length === 0"
+                    :disabled="currentPageIds.length === 0 || loading"
                     aria-label="Chọn tất cả thí sinh trên trang này"
                     @update:model-value="
                       (value) => toggleCurrentPage(value === true)
                     "
                   />
 
-                  <!-- Wrapping sortable header, like the region table -->
+                  <!-- Server-side sortable header -->
+
                   <div
-                    v-else-if="header.column.getCanSort()"
+                    v-else-if="isSortable(header.column.id)"
                     class="flex min-w-0"
                   >
                     <Button
@@ -487,7 +513,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                       variant="ghost"
                       size="sm"
                       class="h-auto min-h-8 w-full min-w-0 justify-start gap-1 px-1 whitespace-normal"
-                      @click="header.column.toggleSorting()"
+                      @click="emit('sort', header.column.id)"
                     >
                       <span
                         class="min-w-0 text-left leading-tight whitespace-normal"
@@ -499,12 +525,14 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                       </span>
 
                       <ArrowUp
-                        v-if="header.column.getIsSorted() === 'asc'"
+                        v-if="sortBy === header.column.id && sortDir === 'asc'"
                         class="size-3.5 shrink-0"
                       />
 
                       <ArrowDown
-                        v-else-if="header.column.getIsSorted() === 'desc'"
+                        v-else-if="
+                          sortBy === header.column.id && sortDir === 'desc'
+                        "
                         class="size-3.5 shrink-0"
                       />
 
@@ -516,6 +544,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                   </div>
 
                   <!-- Non-sortable header -->
+
                   <FlexRender
                     v-else
                     :render="header.column.columnDef.header"
@@ -526,8 +555,11 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
             </TableRow>
           </TableHeader>
 
+          <!-- Table body -->
+
           <TableBody>
             <!-- Loading state -->
+
             <TableRow v-if="loading">
               <TableCell
                 :colspan="table.getVisibleLeafColumns().length"
@@ -537,7 +569,8 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
               </TableCell>
             </TableRow>
 
-            <!-- Error state -->
+            <!-- API error -->
+
             <TableRow v-else-if="error">
               <TableCell
                 :colspan="table.getVisibleLeafColumns().length"
@@ -549,6 +582,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
             </TableRow>
 
             <!-- Candidate rows -->
+
             <template v-else-if="table.getRowModel().rows.length">
               <TableRow
                 v-for="row in table.getRowModel().rows"
@@ -563,6 +597,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                   class="px-3 py-3 whitespace-normal"
                 >
                   <!-- Selection -->
+
                   <Checkbox
                     v-if="cell.column.id === 'selection'"
                     :model-value="selectedIds.has(row.original.id)"
@@ -574,6 +609,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                   />
 
                   <!-- Candidate name -->
+
                   <span
                     v-else-if="cell.column.id === 'hoTen'"
                     class="font-medium"
@@ -582,6 +618,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                   </span>
 
                   <!-- School -->
+
                   <span v-else-if="cell.column.id === 'truongHoc'">
                     {{ row.original.truongHoc || "—" }}
                   </span>
@@ -603,6 +640,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                   </Badge>
 
                   <!-- Candidate status -->
+
                   <Badge
                     v-else-if="cell.column.id === 'trangThai'"
                     variant="outline"
@@ -612,11 +650,13 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                   </Badge>
 
                   <!-- Actions -->
+
                   <div
                     v-else-if="cell.column.id === 'actions'"
                     class="flex items-center justify-center gap-1"
                   >
                     <!-- View candidate -->
+
                     <Button
                       type="button"
                       variant="ghost"
@@ -629,6 +669,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                     </Button>
 
                     <!-- Edit candidate -->
+
                     <Button
                       type="button"
                       variant="ghost"
@@ -640,6 +681,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                     </Button>
 
                     <!-- Delete candidate -->
+
                     <Button
                       type="button"
                       variant="ghost"
@@ -653,6 +695,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
                   </div>
 
                   <!-- Other columns -->
+
                   <span
                     v-else
                     class="text-muted-foreground"
@@ -669,6 +712,7 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
             </template>
 
             <!-- Empty state -->
+
             <TableRow v-else>
               <TableCell
                 :colspan="table.getVisibleLeafColumns().length"
@@ -680,6 +724,8 @@ watch([() => props.page, () => props.keyword, () => props.status], () => {
           </TableBody>
         </Table>
       </div>
+
+      <!-- Server-side pagination -->
 
       <TablePagination
         :page="page"

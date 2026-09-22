@@ -12,6 +12,7 @@ import {
   updateCandidate,
   deleteCandidate,
   exportCandidates,
+  importCandidates,
 } from "@/services/candidates";
 
 import type {
@@ -29,6 +30,10 @@ const searchKeyword = ref("");
 
 // Candidate filters
 const selectedStatus = ref("");
+
+// Sorting
+const sortBy = ref("");
+const sortDir = ref<"asc" | "desc">("asc");
 
 const page = ref(1);
 const pageSize = ref(10);
@@ -57,6 +62,11 @@ const bulkDeleteError = ref("");
 const exporting = ref(false);
 const exportError = ref("");
 
+const importing = ref(false);
+const importError = ref("");
+
+const importInput = ref<HTMLInputElement | null>(null);
+
 // Trigger a new request after creating a candidate.
 const refreshKey = ref(0);
 
@@ -76,7 +86,7 @@ watch(keyword, (value, _, onCleanup) => {
 
 // Fetch candidates whenever the query changes.
 watch(
-  [page, pageSize, searchKeyword, selectedStatus, refreshKey],
+  [page, pageSize, searchKeyword, selectedStatus, sortBy, sortDir, refreshKey],
   async (_, __, onCleanup) => {
     let cancelled = false;
 
@@ -91,8 +101,12 @@ watch(
       const result: CandidatePage = await getCandidates({
         keyword: searchKeyword.value || undefined,
         trangThai: selectedStatus.value || undefined,
+
         page: page.value - 1,
         size: pageSize.value,
+
+        sortBy: sortBy.value || undefined,
+        sortDir: sortBy.value ? sortDir.value : undefined,
       });
 
       if (cancelled) return;
@@ -130,6 +144,19 @@ function changePageSize(size: number) {
 function changeStatus(value: string) {
   page.value = 1;
   selectedStatus.value = value;
+}
+
+// Sorting
+
+function changeSort(field: string) {
+  page.value = 1;
+
+  if (sortBy.value === field) {
+    sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
+  } else {
+    sortBy.value = field;
+    sortDir.value = "asc";
+  }
 }
 
 // Open candidate creation dialog.
@@ -224,7 +251,6 @@ async function handleDeleteCandidate() {
     }
 
     // Reload the candidate list.
-    refreshKey.value++;
   } catch (error) {
     deleteError.value =
       error instanceof Error
@@ -268,6 +294,65 @@ async function handleExportCandidates() {
       error instanceof Error ? error.message : "Không thể xuất file Excel.";
   } finally {
     exporting.value = false;
+  }
+}
+
+// Open file picker
+
+function openImportFilePicker() {
+  if (importing.value) return;
+
+  importError.value = "";
+
+  importInput.value?.click();
+}
+
+// Import Excel file
+
+async function handleImportCandidates(event: Event) {
+  const input = event.target as HTMLInputElement;
+
+  const file = input.files?.[0];
+
+  if (!file || importing.value) return;
+
+  // Reset input so the same file can be selected again.
+
+  input.value = "";
+
+  // Validate file extension.
+
+  if (!/\.(xlsx|xls)$/i.test(file.name)) {
+    importError.value =
+      "Vui lòng chọn file Excel có định dạng .xlsx hoặc .xls.";
+
+    return;
+  }
+
+  importing.value = true;
+  importError.value = "";
+
+  try {
+    await importCandidates(file);
+
+    // Clear filters and return to the first page.
+
+    keyword.value = "";
+    searchKeyword.value = "";
+    selectedStatus.value = "";
+
+    page.value = 1;
+
+    // Reload the candidate list.
+
+    refreshKey.value++;
+  } catch (error) {
+    importError.value =
+      error instanceof Error
+        ? error.message
+        : "Không thể nhập file Excel. Vui lòng thử lại.";
+  } finally {
+    importing.value = false;
   }
 }
 
@@ -354,6 +439,9 @@ async function handleBulkDeleteCandidates() {
       :loading="loading"
       :error="errorMessage"
       :exporting="exporting"
+      :sort-by="sortBy"
+      :sort-dir="sortDir"
+      :importing="importing"
       @update:keyword="keyword = $event"
       @update:status="changeStatus"
       @update:page="page = $event"
@@ -363,7 +451,26 @@ async function handleBulkDeleteCandidates() {
       @delete="openDeleteDialog"
       @export-file="handleExportCandidates"
       @delete-selected="openBulkDeleteDialog"
+      @sort="changeSort"
+      @import-file="openImportFilePicker"
     />
+
+    <!-- Excel file input -->
+
+    <input
+      ref="importInput"
+      type="file"
+      accept=".xlsx,.xls"
+      class="hidden"
+      aria-label="Chọn file Excel để nhập thí sinh"
+      @change="handleImportCandidates"
+    />
+
+    <!-- Import error -->
+
+    <p v-if="importError" role="alert" class="mt-3 text-sm text-destructive">
+      {{ importError }}
+    </p>
 
     <p v-if="exportError" role="alert" class="mt-3 text-sm text-destructive">
       {{ exportError }}

@@ -1,19 +1,26 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 
 import {
   FlexRender,
   columnVisibilityFeature,
   createColumnHelper,
-  createPaginatedRowModel,
-  rowPaginationFeature,
   tableFeatures,
   useTable,
 } from "@tanstack/vue-table";
 
-import { ChevronDown, Pencil, Plus, Search, Trash2 } from "lucide-vue-next";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronDown,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-vue-next";
 
-import type { Partner } from "@/types/partner";
+import type { PartnerResponse } from "@/types/partner-api";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,62 +61,78 @@ import {
 import TablePagination from "@/components/shared/TablePagination.vue";
 
 // Props and events
+
 const props = defineProps<{
-  partners: Partner[];
+  partners: PartnerResponse[];
+
+  keyword: string;
+  type: string;
+
+  classifications: string[];
+  classificationsLoading: boolean;
+  classificationsError: string;
+
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+
+  sortBy: string;
+  sortDir: "asc" | "desc";
+
+  loading: boolean;
+  error: string;
 }>();
 
 const emit = defineEmits<{
+  "update:keyword": [value: string];
+  "update:type": [value: string];
+
+  "update:page": [value: number];
+  "update:page-size": [value: number];
+
+  sort: [field: string];
+
   add: [];
-  edit: [partner: Partner];
-  delete: [partner: Partner];
+  edit: [partner: PartnerResponse];
+  delete: [partner: PartnerResponse];
 }>();
 
-// Search and filtering
-const partnerSearch = ref("");
-const selectedType = ref("all");
+// Classification options
 
-const filteredPartners = computed(() => {
-  const search = partnerSearch.value.trim().toLocaleLowerCase("vi-VN");
+const classificationOptions = computed(() => [
+  ...new Set(
+    props.classifications
+      .map((value) => value.trim())
+      .filter((value) => value && value !== "all"),
+  ),
+]);
 
-  return props.partners.filter((partner) => {
-    const matchesType =
-      selectedType.value === "all" || partner.type === selectedType.value;
-
-    const matchesSearch =
-      !search ||
-      [
-        partner.name,
-        partner.contactName,
-        partner.email,
-        partner.phone,
-        partner.notes,
-      ].some((value) => value.toLocaleLowerCase("vi-VN").includes(search));
-
-    return matchesType && matchesSearch;
-  });
-});
+function changeType(value: string) {
+  emit("update:type", value === "all" ? "" : value);
+}
 
 // Table features
+
 const features = tableFeatures({
   columnVisibilityFeature,
-  rowPaginationFeature,
-
-  paginatedRowModel: createPaginatedRowModel(),
 });
 
-const columnHelper = createColumnHelper<typeof features, Partner>();
+// Table columns
+
+const columnHelper = createColumnHelper<typeof features, PartnerResponse>();
 
 const columns = columnHelper.columns([
-  columnHelper.accessor("name", {
+  columnHelper.accessor("tenDoanhNghiep", {
     header: "Tên đơn vị",
     enableHiding: false,
   }),
 
-  columnHelper.accessor("type", {
+  columnHelper.accessor("phanLoai", {
     header: "Phân loại",
   }),
 
-  columnHelper.accessor("contactName", {
+  columnHelper.accessor("nguoiDaiDien", {
     header: "Người liên hệ",
   }),
 
@@ -117,12 +140,24 @@ const columns = columnHelper.columns([
     header: "Email",
   }),
 
-  columnHelper.accessor("phone", {
+  columnHelper.accessor("soDienThoai", {
     header: "Số điện thoại",
   }),
 
-  columnHelper.accessor("notes", {
-    header: "Ghi chú",
+  columnHelper.accessor("maSoThue", {
+    header: "Mã số thuế",
+  }),
+
+  columnHelper.accessor("diaChi", {
+    header: "Địa chỉ",
+  }),
+
+  columnHelper.accessor("nhanVienPhuTrach", {
+    header: "Nhân viên phụ trách",
+  }),
+
+  columnHelper.accessor("createdAt", {
+    header: "Ngày tạo",
   }),
 
   columnHelper.display({
@@ -133,53 +168,58 @@ const columns = columnHelper.columns([
 ]);
 
 // Table instance
+
 const table = useTable({
   features,
-  data: filteredPartners,
+
+  data: computed(() => props.partners),
+
   columns,
 
   initialState: {
-    pagination: {
-      pageIndex: 0,
-      pageSize: 10,
+    columnVisibility: {
+      diaChi: false,
+      nhanVienPhuTrach: false,
+      createdAt: false,
     },
   },
 });
 
-// Reset pagination after searching or filtering
-watch([partnerSearch, selectedType], () => {
-  table.setPageIndex(0);
-});
+// Sorting
 
-// Keep the current page valid after deleting partners
-watch(
-  () => filteredPartners.value.length,
-  () => {
-    const { pageIndex, pageSize } = table.atoms.pagination.get();
+const sortableColumns = new Set([
+  "tenDoanhNghiep",
+  "nguoiDaiDien",
+  "email",
+  "maSoThue",
+  "createdAt",
+]);
 
-    const lastPage = Math.max(
-      0,
-      Math.ceil(filteredPartners.value.length / pageSize) - 1,
-    );
+function isSortable(id: string): boolean {
+  return sortableColumns.has(id);
+}
 
-    if (pageIndex > lastPage) {
-      table.setPageIndex(lastPage);
-    }
-  },
-);
+// Formatters
 
-// Change page size
-function changePageSize(size: number) {
-  table.setPageSize(size);
-  table.setPageIndex(0);
+function formatDate(value: string | null): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("vi-VN");
 }
 </script>
 
 <template>
   <Card class="min-w-0 w-full gap-4 py-4">
     <!-- Card header -->
+
     <CardHeader class="px-4">
-      <CardTitle>Danh sách đối tác và doanh nghiệp</CardTitle>
+      <CardTitle> Danh sách đối tác và doanh nghiệp </CardTitle>
 
       <CardDescription>
         Quản lý đơn vị phối hợp, tài trợ và các đầu mối liên hệ của cuộc thi.
@@ -188,41 +228,62 @@ function changePageSize(size: number) {
 
     <CardContent class="min-w-0 space-y-4 px-4">
       <!-- Search, filter and actions -->
+
       <div class="@container min-w-0">
         <div
-          class="grid min-w-0 grid-cols-2 gap-3 @[46rem]:grid-cols-[minmax(12rem,20rem)_10rem_10rem_minmax(0,1fr)_auto] @[46rem]:items-center"
+          class="grid min-w-0 grid-cols-2 gap-3 @[46rem]:grid-cols-[minmax(12rem,1fr)_10rem_10rem_auto] @[46rem]:items-center"
         >
           <!-- Search -->
-          <div class="relative min-w-0">
+
+          <div class="relative col-span-2 min-w-0 @[46rem]:col-span-1">
             <Search
               class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
 
             <Input
-              v-model="partnerSearch"
-              placeholder="Tìm tên, liên hệ, ghi chú..."
+              :model-value="keyword"
+              placeholder="Tìm tên, liên hệ, email..."
               aria-label="Tìm kiếm đối tác"
-              class="w-full min-w-0 truncate pl-9 pr-3 text-sm"
+              class="w-full min-w-0 truncate pr-3 pl-9 text-sm"
+              @update:model-value="
+                (value) => emit('update:keyword', String(value ?? ''))
+              "
             />
           </div>
 
-          <!-- Partner type filter -->
-          <Select v-model="selectedType">
+          <!-- Classification filter -->
+
+          <Select
+            :model-value="type || 'all'"
+            :disabled="classificationsLoading || !!classificationsError"
+            @update:model-value="(value) => changeType(String(value ?? 'all'))"
+          >
             <SelectTrigger
               class="w-full min-w-0 gap-2"
               aria-label="Lọc theo phân loại đối tác"
             >
-              <SelectValue placeholder="Tất cả loại" />
+              <SelectValue
+                :placeholder="
+                  classificationsLoading ? 'Đang tải...' : 'Phân loại'
+                "
+              />
             </SelectTrigger>
 
             <SelectContent>
-              <SelectItem value="all">Tất cả loại</SelectItem>
-              <SelectItem value="Trường học">Trường học</SelectItem>
-              <SelectItem value="Doanh nghiệp">Doanh nghiệp</SelectItem>
+              <SelectItem value="all"> Tất cả loại </SelectItem>
+
+              <SelectItem
+                v-for="classification in classificationOptions"
+                :key="classification"
+                :value="classification"
+              >
+                {{ classification }}
+              </SelectItem>
             </SelectContent>
           </Select>
 
           <!-- Column visibility -->
+
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button
@@ -230,7 +291,7 @@ function changePageSize(size: number) {
                 variant="outline"
                 class="w-full min-w-0 justify-between gap-2 px-3 font-normal"
               >
-                <span class="min-w-0 truncate text-left"> Hiển thị cột </span>
+                <span class="min-w-0 truncate"> Hiển thị cột </span>
 
                 <ChevronDown class="size-4 shrink-0 opacity-50" />
               </Button>
@@ -259,9 +320,10 @@ function changePageSize(size: number) {
           </DropdownMenu>
 
           <!-- Add partner -->
+
           <Button
             type="button"
-            class="w-full min-w-0 gap-2 @[46rem]:col-start-5 @[46rem]:w-auto"
+            class="w-full min-w-0 gap-2 @[46rem]:w-auto"
             @click="emit('add')"
           >
             <Plus class="size-4 shrink-0" />
@@ -271,10 +333,23 @@ function changePageSize(size: number) {
         </div>
       </div>
 
+      <!-- Classification error -->
+
+      <p
+        v-if="classificationsError"
+        role="alert"
+        class="text-sm text-destructive"
+      >
+        Không thể tải danh sách phân loại:
+        {{ classificationsError }}
+      </p>
+
       <!-- Responsive table -->
+
       <div class="min-w-0 max-w-full overflow-x-auto rounded-md border">
         <Table class="w-full">
           <!-- Table header -->
+
           <TableHeader>
             <TableRow
               v-for="headerGroup in table.getHeaderGroups()"
@@ -283,23 +358,99 @@ function changePageSize(size: number) {
               <TableHead
                 v-for="header in headerGroup.headers"
                 :key="header.id"
-                class="h-auto whitespace-normal px-3 py-2 text-left"
+                class="h-auto whitespace-normal px-3 py-2"
                 :class="{
-                  'min-w-36': header.column.id === 'notes',
+                  'min-w-36': header.column.id === 'tenDoanhNghiep',
+                  'text-center': header.column.id === 'actions',
                 }"
+                :aria-sort="
+                  isSortable(header.column.id)
+                    ? sortBy === header.column.id
+                      ? sortDir === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                    : undefined
+                "
               >
-                <FlexRender
-                  v-if="!header.isPlaceholder"
-                  :render="header.column.columnDef.header"
-                  :props="header.getContext()"
-                />
+                <template v-if="!header.isPlaceholder">
+                  <!-- Sortable header -->
+
+                  <Button
+                    v-if="isSortable(header.column.id)"
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    class="h-auto min-h-8 w-full min-w-0 justify-start gap-1 px-1 whitespace-normal"
+                    @click="emit('sort', header.column.id)"
+                  >
+                    <span
+                      class="min-w-0 text-left leading-tight whitespace-normal"
+                    >
+                      <FlexRender
+                        :render="header.column.columnDef.header"
+                        :props="header.getContext()"
+                      />
+                    </span>
+
+                    <ArrowUp
+                      v-if="sortBy === header.column.id && sortDir === 'asc'"
+                      class="size-3.5 shrink-0"
+                    />
+
+                    <ArrowDown
+                      v-else-if="
+                        sortBy === header.column.id && sortDir === 'desc'
+                      "
+                      class="size-3.5 shrink-0"
+                    />
+
+                    <ArrowUpDown
+                      v-else
+                      class="size-3.5 shrink-0 text-muted-foreground"
+                    />
+                  </Button>
+
+                  <!-- Non-sortable header -->
+
+                  <FlexRender
+                    v-else
+                    :render="header.column.columnDef.header"
+                    :props="header.getContext()"
+                  />
+                </template>
               </TableHead>
             </TableRow>
           </TableHeader>
 
           <!-- Table body -->
+
           <TableBody>
-            <template v-if="table.getRowModel().rows.length">
+            <!-- Loading state -->
+
+            <TableRow v-if="loading">
+              <TableCell
+                :colspan="table.getVisibleLeafColumns().length"
+                class="h-24 text-center text-muted-foreground"
+              >
+                Đang tải danh sách đối tác...
+              </TableCell>
+            </TableRow>
+
+            <!-- API error -->
+
+            <TableRow v-else-if="error">
+              <TableCell
+                :colspan="table.getVisibleLeafColumns().length"
+                class="h-24 text-center text-destructive"
+              >
+                {{ error }}
+              </TableCell>
+            </TableRow>
+
+            <!-- Partner rows -->
+
+            <template v-else-if="table.getRowModel().rows.length">
               <TableRow
                 v-for="row in table.getRowModel().rows"
                 :key="row.original.id"
@@ -310,50 +461,61 @@ function changePageSize(size: number) {
                   class="px-3 py-3 whitespace-normal"
                 >
                   <!-- Partner name -->
-                  <span v-if="cell.column.id === 'name'" class="font-medium">
-                    {{ row.original.name }}
+
+                  <span
+                    v-if="cell.column.id === 'tenDoanhNghiep'"
+                    class="font-medium wrap-break-word"
+                  >
+                    {{ row.original.tenDoanhNghiep || "—" }}
                   </span>
 
-                  <!-- Partner type -->
+                  <!-- Classification -->
+
                   <Badge
-                    v-else-if="cell.column.id === 'type'"
+                    v-else-if="
+                      cell.column.id === 'phanLoai' && row.original.phanLoai
+                    "
                     variant="secondary"
                     class="whitespace-nowrap"
                   >
-                    {{ row.original.type }}
+                    {{ row.original.phanLoai }}
                   </Badge>
 
-                  <!-- Notes -->
+                  <!-- Created date -->
+
                   <span
-                    v-else-if="cell.column.id === 'notes'"
-                    class="text-muted-foreground"
+                    v-else-if="cell.column.id === 'createdAt'"
+                    class="whitespace-nowrap text-muted-foreground tabular-nums"
                   >
-                    {{ row.original.notes || "—" }}
+                    {{ formatDate(row.original.createdAt) }}
                   </span>
 
                   <!-- Actions -->
+
                   <div
                     v-else-if="cell.column.id === 'actions'"
                     class="flex items-center justify-center gap-1"
                   >
-                    <!-- Edit -->
+                    <!-- Edit partner -->
+
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      :aria-label="`Chỉnh sửa ${row.original.name}`"
+                      :aria-label="`Chỉnh sửa ${row.original.tenDoanhNghiep}`"
                       @click="emit('edit', row.original)"
                     >
                       <Pencil class="size-4" />
                     </Button>
 
-                    <!-- Delete -->
+                    <!-- Delete partner -->
+
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       class="text-destructive hover:text-destructive"
-                      :aria-label="`Xóa ${row.original.name}`"
+                      :aria-label="`Xóa ${row.original.tenDoanhNghiep}`"
                       @click="emit('delete', row.original)"
                     >
                       <Trash2 class="size-4" />
@@ -361,21 +523,24 @@ function changePageSize(size: number) {
                   </div>
 
                   <!-- Other columns -->
+
                   <span
                     v-else
+                    class="text-muted-foreground"
                     :class="{
-                      'text-muted-foreground':
-                        cell.column.id === 'email' ||
-                        cell.column.id === 'phone',
+                      'tabular-nums':
+                        cell.column.id === 'maSoThue' ||
+                        cell.column.id === 'soDienThoai',
                     }"
                   >
-                    {{ cell.getValue() }}
+                    {{ cell.getValue() ?? "—" }}
                   </span>
                 </TableCell>
               </TableRow>
             </template>
 
             <!-- Empty state -->
+
             <TableRow v-else>
               <TableCell
                 :colspan="table.getVisibleLeafColumns().length"
@@ -388,15 +553,16 @@ function changePageSize(size: number) {
         </Table>
       </div>
 
-      <!-- Pagination -->
+      <!-- Server-side pagination -->
+
       <TablePagination
-        :page="table.atoms.pagination.get().pageIndex + 1"
-        :page-count="Math.max(1, table.getPageCount())"
-        :page-size="table.atoms.pagination.get().pageSize"
-        :total="filteredPartners.length"
+        :page="page"
+        :page-count="Math.max(1, totalPages)"
+        :page-size="pageSize"
+        :total="total"
         item-label="đối tác"
-        @update:page="table.setPageIndex($event - 1)"
-        @update:page-size="changePageSize"
+        @update:page="emit('update:page', $event)"
+        @update:page-size="emit('update:page-size', $event)"
       />
     </CardContent>
   </Card>

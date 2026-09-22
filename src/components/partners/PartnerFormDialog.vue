@@ -3,9 +3,10 @@ import { computed, watch } from "vue";
 import { useForm } from "@tanstack/vue-form";
 import { z } from "zod";
 
-import type { Partner } from "@/types/partner";
+import type { PartnerResponse, PartnerFormValues } from "@/types/partner-api";
 
 import { Button } from "@/components/ui/button";
+
 import {
   Dialog,
   DialogContent,
@@ -14,71 +15,87 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 
 // Props and events
+
 const props = defineProps<{
   open: boolean;
-  partner: Partner | null;
+  partner: PartnerResponse | null;
+  saving: boolean;
+  error: string;
 }>();
 
 const emit = defineEmits<{
   "update:open": [value: boolean];
-  submit: [values: Omit<Partner, "id">];
+  submit: [values: PartnerFormValues];
 }>();
 
+// Dialog mode
+
+const isEditing = computed(() => props.partner !== null);
+
 // Form validation
-const partnerSchema = z.object({
-  name: z.string().trim().min(1, "Vui lòng nhập tên đơn vị."),
 
-  type: z.enum(["Trường học", "Doanh nghiệp", "Khác"]),
+const partnerSchema = z
+  .object({
+    tenDoanhNghiep: z.string().trim().min(1, "Vui lòng nhập tên đối tác."),
 
-  contactName: z.string().trim().min(1, "Vui lòng nhập người liên hệ."),
+    maSoThue: z.string().trim(),
 
-  email: z
-    .string()
-    .trim()
-    .min(1, "Vui lòng nhập email.")
-    .refine(
-      (value) => value === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
-      "Email không hợp lệ.",
-    ),
+    nguoiDaiDien: z.string().trim(),
 
-  phone: z
-    .string()
-    .trim()
-    .regex(
-      /^(0[0-9]{9,10})?$/,
-      "Số điện thoại phải có 10–11 chữ số và bắt đầu bằng 0.",
-    ),
+    email: z
+      .string()
+      .trim()
+      .refine(
+        (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+        "Email không hợp lệ.",
+      ),
 
-  notes: z.string().trim(),
-});
+    soDienThoai: z
+      .string()
+      .trim()
+      .refine(
+        (value) => !value || /^\+?[0-9 .()-]{8,20}$/.test(value),
+        "Số điện thoại không hợp lệ.",
+      ),
 
-type PartnerFormValues = z.infer<typeof partnerSchema>;
+    diaChi: z.string().trim(),
+
+    nganhNghe: z.string().trim(),
+  })
+  .superRefine((values, context) => {
+    if (!props.partner && !values.maSoThue) {
+      context.addIssue({
+        code: "custom",
+        path: ["maSoThue"],
+        message: "Vui lòng nhập mã số thuế.",
+      });
+    }
+  });
 
 // Default form values
-function getDefaultValues(partner: Partner | null = null): PartnerFormValues {
+
+function getDefaultValues(
+  partner: PartnerResponse | null = null,
+): PartnerFormValues {
   return {
-    name: partner?.name ?? "",
-    type: partner?.type ?? "Trường học",
-    contactName: partner?.contactName ?? "",
+    tenDoanhNghiep: partner?.tenDoanhNghiep ?? "",
+    maSoThue: partner?.maSoThue ?? "",
+    nguoiDaiDien: partner?.nguoiDaiDien ?? "",
     email: partner?.email ?? "",
-    phone: partner?.phone ?? "",
-    notes: partner?.notes ?? "",
+    soDienThoai: partner?.soDienThoai ?? "",
+    diaChi: partner?.diaChi ?? "",
+    nganhNghe: "",
   };
 }
 
 // Form instance
+
 const form = useForm({
   defaultValues: getDefaultValues(),
 
@@ -87,16 +104,16 @@ const form = useForm({
   },
 
   onSubmit: async ({ value }) => {
-    const validatedValues = partnerSchema.parse(value);
+    if (props.saving) return;
 
-    emit("submit", validatedValues);
+    const values = partnerSchema.parse(value);
+
+    emit("submit", values);
   },
 });
 
-// Dialog mode
-const isEditing = computed(() => props.partner !== null);
+// Reset form
 
-// Populate the form whenever the dialog opens
 watch(
   () => props.open,
   (isOpen) => {
@@ -106,38 +123,48 @@ watch(
   },
 );
 
-// Close dialog
+// Dialog actions
+
+function updateOpen(value: boolean) {
+  if (!props.saving) {
+    emit("update:open", value);
+  }
+}
+
 function closeDialog() {
-  emit("update:open", false);
+  updateOpen(false);
 }
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="emit('update:open', $event)">
+  <Dialog :open="open" @update:open="updateOpen">
     <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
       <!-- Dialog header -->
+
       <DialogHeader>
         <DialogTitle>
-          {{ isEditing ? "Chỉnh sửa thông tin" : "Thêm đối tác" }}
+          {{ isEditing ? "Chỉnh sửa thông tin đối tác" : "Thêm đối tác" }}
         </DialogTitle>
 
         <DialogDescription>
           {{
             isEditing
-              ? "Cập nhật thông tin liên hệ và ghi chú phân loại của đối tác."
+              ? "Cập nhật thông tin đối tác và người liên hệ."
               : "Nhập thông tin đơn vị phối hợp cùng cuộc thi."
           }}
         </DialogDescription>
       </DialogHeader>
 
       <!-- Partner form -->
+
       <form class="grid gap-4" novalidate @submit.prevent="form.handleSubmit()">
         <!-- Partner name -->
-        <form.Field name="name">
+
+        <form.Field name="tenDoanhNghiep">
           <template #default="{ field }">
             <Field :data-invalid="!field.state.meta.isValid">
               <FieldLabel :for="field.name">
-                Tên đối tác / doanh nghiệp
+                Tên đối tác
                 <span class="text-destructive">*</span>
               </FieldLabel>
 
@@ -146,7 +173,8 @@ function closeDialog() {
                 :name="field.name"
                 :model-value="field.state.value"
                 :aria-invalid="!field.state.meta.isValid"
-                placeholder="Nhập tên đơn vị..."
+                placeholder="Nhập tên đối tác..."
+                :disabled="saving"
                 @update:model-value="
                   (value) => field.handleChange(String(value ?? ''))
                 "
@@ -161,40 +189,37 @@ function closeDialog() {
           </template>
         </form.Field>
 
-        <!-- Classification and contact name -->
+        <!-- Tax ID and representative -->
+
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <!-- Partner type -->
-          <form.Field name="type">
+          <!-- Tax ID -->
+
+          <form.Field name="maSoThue">
             <template #default="{ field }">
               <Field :data-invalid="!field.state.meta.isValid">
                 <FieldLabel :for="field.name">
-                  Phân loại
-                  <span class="text-destructive">*</span>
+                  Mã số thuế
+
+                  <span v-if="!isEditing" class="text-destructive"> * </span>
                 </FieldLabel>
 
-                <Select
+                <Input
+                  :id="field.name"
                   :name="field.name"
                   :model-value="field.state.value"
+                  :aria-invalid="!field.state.meta.isValid"
+                  placeholder="Nhập mã số thuế..."
+                  :readonly="isEditing"
+                  :disabled="saving"
                   @update:model-value="
-                    (value) => field.handleChange(value as Partner['type'])
+                    (value) => field.handleChange(String(value ?? ''))
                   "
-                >
-                  <SelectTrigger
-                    :id="field.name"
-                    class="w-full"
-                    :aria-invalid="!field.state.meta.isValid"
-                  >
-                    <SelectValue placeholder="Chọn phân loại" />
-                  </SelectTrigger>
+                  @blur="field.handleBlur"
+                />
 
-                  <SelectContent>
-                    <SelectItem value="Trường học"> Trường học </SelectItem>
-
-                    <SelectItem value="Doanh nghiệp"> Doanh nghiệp </SelectItem>
-
-                    <SelectItem value="Khác"> Khác </SelectItem>
-                  </SelectContent>
-                </Select>
+                <p v-if="isEditing" class="text-xs text-muted-foreground">
+                  Mã số thuế không hỗ trợ chỉnh sửa.
+                </p>
 
                 <FieldError
                   v-if="field.state.meta.errors.length"
@@ -204,21 +229,20 @@ function closeDialog() {
             </template>
           </form.Field>
 
-          <!-- Contact name -->
-          <form.Field name="contactName">
+          <!-- Representative -->
+
+          <form.Field name="nguoiDaiDien">
             <template #default="{ field }">
               <Field :data-invalid="!field.state.meta.isValid">
-                <FieldLabel :for="field.name">
-                  Người liên hệ
-                  <span class="text-destructive">*</span>
-                </FieldLabel>
+                <FieldLabel :for="field.name"> Người đại diện </FieldLabel>
 
                 <Input
                   :id="field.name"
                   :name="field.name"
                   :model-value="field.state.value"
                   :aria-invalid="!field.state.meta.isValid"
-                  placeholder="Nhập người liên hệ..."
+                  placeholder="Nhập người đại diện..."
+                  :disabled="saving"
                   @update:model-value="
                     (value) => field.handleChange(String(value ?? ''))
                   "
@@ -235,15 +259,14 @@ function closeDialog() {
         </div>
 
         <!-- Email and phone -->
+
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <!-- Email -->
+
           <form.Field name="email">
             <template #default="{ field }">
               <Field :data-invalid="!field.state.meta.isValid">
-                <FieldLabel :for="field.name">
-                  Email
-                  <span class="text-destructive">*</span>
-                </FieldLabel>
+                <FieldLabel :for="field.name"> Email </FieldLabel>
 
                 <Input
                   :id="field.name"
@@ -252,6 +275,7 @@ function closeDialog() {
                   :model-value="field.state.value"
                   :aria-invalid="!field.state.meta.isValid"
                   placeholder="example@email.com"
+                  :disabled="saving"
                   @update:model-value="
                     (value) => field.handleChange(String(value ?? ''))
                   "
@@ -267,7 +291,8 @@ function closeDialog() {
           </form.Field>
 
           <!-- Phone -->
-          <form.Field name="phone">
+
+          <form.Field name="soDienThoai">
             <template #default="{ field }">
               <Field :data-invalid="!field.state.meta.isValid">
                 <FieldLabel :for="field.name"> Số điện thoại </FieldLabel>
@@ -280,6 +305,7 @@ function closeDialog() {
                   :model-value="field.state.value"
                   :aria-invalid="!field.state.meta.isValid"
                   placeholder="Nhập số điện thoại..."
+                  :disabled="saving"
                   @update:model-value="
                     (value) => field.handleChange(String(value ?? ''))
                   "
@@ -295,19 +321,20 @@ function closeDialog() {
           </form.Field>
         </div>
 
-        <!-- Notes -->
-        <form.Field name="notes">
+        <!-- Address -->
+
+        <form.Field name="diaChi">
           <template #default="{ field }">
             <Field :data-invalid="!field.state.meta.isValid">
-              <FieldLabel :for="field.name"> Ghi chú phân loại </FieldLabel>
+              <FieldLabel :for="field.name"> Địa chỉ </FieldLabel>
 
-              <Textarea
+              <Input
                 :id="field.name"
                 :name="field.name"
                 :model-value="field.state.value"
                 :aria-invalid="!field.state.meta.isValid"
-                placeholder="Nhập ghi chú..."
-                class="min-h-24 resize-y"
+                placeholder="Nhập địa chỉ..."
+                :disabled="saving"
                 @update:model-value="
                   (value) => field.handleChange(String(value ?? ''))
                 "
@@ -322,16 +349,71 @@ function closeDialog() {
           </template>
         </form.Field>
 
+        <!-- Industry -->
+
+        <form.Field name="nganhNghe">
+          <template #default="{ field }">
+            <Field :data-invalid="!field.state.meta.isValid">
+              <FieldLabel :for="field.name"> Ngành nghề </FieldLabel>
+
+              <Input
+                :id="field.name"
+                :name="field.name"
+                :model-value="field.state.value"
+                :aria-invalid="!field.state.meta.isValid"
+                :placeholder="
+                  isEditing
+                    ? 'Chỉ nhập khi muốn cập nhật'
+                    : 'Nhập ngành nghề...'
+                "
+                :disabled="saving"
+                @update:model-value="
+                  (value) => field.handleChange(String(value ?? ''))
+                "
+                @blur="field.handleBlur"
+              />
+
+              <p v-if="isEditing" class="text-xs text-muted-foreground">
+                Thông tin ngành nghề hiện tại chưa có trong API phản hồi. Để
+                trống nếu không muốn cập nhật.
+              </p>
+
+              <FieldError
+                v-if="field.state.meta.errors.length"
+                :errors="field.state.meta.errors"
+              />
+            </Field>
+          </template>
+        </form.Field>
+
+        <!-- API error -->
+
+        <p v-if="error" role="alert" class="text-sm text-destructive">
+          {{ error }}
+        </p>
+
         <!-- Form actions -->
+
         <DialogFooter class="mt-2">
-          <Button type="button" variant="outline" @click="closeDialog">
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="saving"
+            @click="closeDialog"
+          >
             Hủy
           </Button>
 
           <form.Subscribe>
             <template #default="{ isSubmitting }">
-              <Button type="submit" :disabled="isSubmitting">
-                {{ isEditing ? "Lưu thay đổi" : "Thêm đối tác" }}
+              <Button type="submit" :disabled="saving || isSubmitting">
+                {{
+                  saving
+                    ? "Đang lưu..."
+                    : isEditing
+                      ? "Lưu thay đổi"
+                      : "Thêm đối tác"
+                }}
               </Button>
             </template>
           </form.Subscribe>

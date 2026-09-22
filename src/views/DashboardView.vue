@@ -10,8 +10,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import Filter from "@/components/ui/filter/Filter.vue";
 
-import { getLastDaysRange } from "@/lib/dashboard-date";
-
 import type { DashboardFilter } from "@/types/dashboard-api";
 
 // Router and tabs
@@ -50,7 +48,7 @@ const activeTab = computed({
 
 // Dashboard filters
 
-const dashboardFilter = ref<DashboardFilter>(getLastDaysRange(30));
+const dashboardFilter = ref<DashboardFilter>({});
 
 provide("dashboardFilter", dashboardFilter);
 

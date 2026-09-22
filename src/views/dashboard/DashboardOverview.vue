@@ -126,9 +126,7 @@ watch(
     <OverviewCards :data="kpis" :loading="loading" />
   </section>
 
-  <section
-    class="grid min-w-0 grid-cols-1 gap-4 min-[68rem]:grid-cols-[2fr_1fr]"
-  >
+  <section class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
     <RegisChart
       :data="registrationTrend"
       :loading="loading"

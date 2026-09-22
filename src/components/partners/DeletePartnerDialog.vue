@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Partner } from "@/types/partner";
+import type { PartnerResponse } from "@/types/partner-api";
 
 import {
   AlertDialog,
@@ -13,42 +13,64 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Props and events
-defineProps<{
+
+const props = defineProps<{
   open: boolean;
-  partner: Partner | null;
+  partner: PartnerResponse | null;
+  deleting: boolean;
+  error: string;
 }>();
 
 const emit = defineEmits<{
   "update:open": [value: boolean];
   confirm: [];
 }>();
+
+// Dialog actions
+
+function updateOpen(value: boolean) {
+  if (!props.deleting) {
+    emit("update:open", value);
+  }
+}
 </script>
 
 <template>
-  <AlertDialog :open="open" @update:open="emit('update:open', $event)">
+  <AlertDialog :open="open" @update:open="updateOpen">
     <AlertDialogContent>
       <!-- Dialog header -->
+
       <AlertDialogHeader>
         <AlertDialogTitle> Xóa đối tác? </AlertDialogTitle>
 
         <AlertDialogDescription>
           Bạn có chắc chắn muốn xóa
+
           <span class="font-semibold text-foreground">
-            {{ partner?.name }}
+            {{ partner?.tenDoanhNghiep }}
           </span>
+
           khỏi danh sách đối tác? Hành động này không thể hoàn tác.
         </AlertDialogDescription>
       </AlertDialogHeader>
 
+      <!-- API error -->
+
+      <p v-if="error" role="alert" class="text-sm text-destructive">
+        {{ error }}
+      </p>
+
       <!-- Dialog actions -->
+
       <AlertDialogFooter>
-        <AlertDialogCancel> Hủy </AlertDialogCancel>
+        <AlertDialogCancel :disabled="deleting"> Hủy </AlertDialogCancel>
 
         <AlertDialogAction
+          :disabled="deleting"
           class="bg-destructive text-white hover:bg-destructive/90"
-          @click="emit('confirm')"
+          @click.prevent="emit('confirm')"
         >
-          Xóa đối tác
+          {{ deleting ? "Đang xóa..." : "Xóa đối tác" }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

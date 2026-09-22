@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 import { ChevronDown } from "lucide-vue-next";
 
@@ -32,15 +32,51 @@ const emit = defineEmits<{
 
 const filtersOpen = ref(false);
 
-const period = ref("30d");
+const customEditorOpen = ref(false);
 
-const customFrom = ref("");
-const customTo = ref("");
+const customFrom = ref(props.modelValue.from ?? "");
+const customTo = ref(props.modelValue.to ?? "");
 
 // Period selection
 
+const period = computed(() => {
+  if (customEditorOpen.value) {
+    return "custom";
+  }
+
+  const { from, to } = props.modelValue;
+
+  if (!from && !to) {
+    return "all";
+  }
+
+  if (from && to) {
+    const last7Days = getLastDaysRange(7);
+    const last30Days = getLastDaysRange(30);
+
+    if (from === last7Days.from && to === last7Days.to) {
+      return "7d";
+    }
+
+    if (from === last30Days.from && to === last30Days.to) {
+      return "30d";
+    }
+  }
+
+  return "custom";
+});
+
 function changePeriod(value: string) {
-  period.value = value;
+  if (value === "custom") {
+    customEditorOpen.value = true;
+
+    customFrom.value = props.modelValue.from ?? "";
+    customTo.value = props.modelValue.to ?? "";
+
+    return;
+  }
+
+  customEditorOpen.value = false;
 
   if (value === "7d") {
     emit("update:modelValue", getLastDaysRange(7));
@@ -54,12 +90,6 @@ function changePeriod(value: string) {
 
   if (value === "all") {
     emit("update:modelValue", {});
-    return;
-  }
-
-  if (value === "custom") {
-    customFrom.value = props.modelValue.from ?? "";
-    customTo.value = props.modelValue.to ?? "";
   }
 }
 
@@ -78,6 +108,8 @@ function applyCustomRange() {
     from: customFrom.value,
     to: customTo.value,
   });
+
+  customEditorOpen.value = false;
 }
 </script>
 

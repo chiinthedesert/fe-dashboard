@@ -120,7 +120,7 @@ function formatPercentage(value: number): string {
 
           <!-- Horizontal bar -->
 
-          <div class="h-6 w-full overflow-hidden bg-muted">
+          <div class="h-6 w-full overflow-hidden rounded-lg">
             <div
               class="h-full rounded-lg bg-chart-1"
               :style="{

@@ -173,3 +173,20 @@ export async function exportCandidates(
 
   return file;
 }
+
+
+export async function importCandidates(
+  file: File,
+): Promise<unknown> {
+  const formData = new FormData();
+
+  formData.append("filePath", file);
+
+  return apiRequest<unknown>(
+    "/api/v1/data/import-excel",
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+}
