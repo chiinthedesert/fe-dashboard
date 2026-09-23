@@ -29,7 +29,7 @@ Backend API, dữ liệu thật và chức năng đăng nhập quản trị viê
     - [x] Dashboard
     - [x] Thi sinh
     - [x] Doi tac
-- [ ] Cài đặt View
+- [X] Cài đặt View
 
 ## Yêu cầu trước khi cài đặt
 
