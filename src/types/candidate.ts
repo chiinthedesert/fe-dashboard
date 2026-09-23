@@ -1,31 +1,34 @@
-export const candidateStatuses = [
-  "Đã đóng phí",
-  "Đã nộp bài",
-  "Chờ hồ sơ",
-  "Đang xét duyệt",
-  "Bị loại",
+// Application status
+
+export const candidateApplicationStatuses = [
+  { value: "created", label: "Mới tạo" },
+  { value: "needs_processing", label: "Cần xử lý" },
+  { value: "processing", label: "Đang xử lý" },
+  { value: "completed", label: "Hoàn tất" },
+  { value: "cancelled", label: "Đã huỷ" },
 ] as const;
 
-export type CandidateStatus = (typeof candidateStatuses)[number];
+export type CandidateApplicationStatus =
+  (typeof candidateApplicationStatuses)[number]["value"];
 
-// Only this division is visible in your screenshot.
-// Add the other official divisions here.
+// Payment status
+
+export const candidatePaymentStatuses = [
+  { value: "pending", label: "Chờ thanh toán" },
+  { value: "paid", label: "Đã thanh toán" },
+  { value: "failed", label: "Thất bại" },
+  { value: "cancelled", label: "Đã huỷ" },
+] as const;
+
+export type CandidatePaymentStatus =
+  (typeof candidatePaymentStatuses)[number]["value"];
+
+// Exam divisions
+
 export const candidateDivisions = [
   "Bảng A",
   "Bảng B",
-];
+] as const;
 
-export interface Candidate {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  school: string;
-  status: CandidateStatus;
-
-  citizenId: string;
-  division: string;
-  salesPersonId: string;
-}
-
-export type CandidateFormValues = Omit<Candidate, "id">;
+export type CandidateDivision =
+  (typeof candidateDivisions)[number];

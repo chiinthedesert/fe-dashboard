@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { PartnerResponse } from "@/types/partner-api";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +14,7 @@ import {
 
 const props = defineProps<{
   open: boolean;
-  partner: PartnerResponse | null;
+  count: number;
   deleting: boolean;
   error: string;
 }>();
@@ -41,16 +39,14 @@ function updateOpen(value: boolean) {
       <!-- Dialog header -->
 
       <AlertDialogHeader>
-        <AlertDialogTitle> Xóa đối tác? </AlertDialogTitle>
+        <AlertDialogTitle> Xóa {{ count }} thí sinh? </AlertDialogTitle>
 
         <AlertDialogDescription>
           Bạn có chắc chắn muốn xóa
-
           <span class="font-semibold text-foreground">
-            {{ partner?.tenDoanhNghiep }}
+            {{ count }} thí sinh đã chọn
           </span>
-
-          khỏi danh sách đối tác? Hành động này không thể hoàn tác.
+          khỏi danh sách? Hành động này không thể hoàn tác.
         </AlertDialogDescription>
       </AlertDialogHeader>
 
@@ -70,7 +66,7 @@ function updateOpen(value: boolean) {
           class="bg-destructive text-white hover:bg-destructive/90"
           @click.prevent="emit('confirm')"
         >
-          {{ deleting ? "Đang xóa..." : "Xóa đối tác" }}
+          {{ deleting ? "Đang xóa..." : `Xóa ${count} thí sinh` }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

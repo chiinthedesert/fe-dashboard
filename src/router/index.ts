@@ -6,6 +6,7 @@ import DashboardView from "@/views/DashboardView.vue";
 import CandidatesView from "@/views/CandidatesView.vue";
 import PartnersView from "@/views/PartnersView.vue";
 import LoginView from "@/views/LoginView.vue";
+import SettingsView from "@/views/SettingsView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,7 +30,6 @@ const router = createRouter({
         },
         {
           path: "dashboard",
-          name: "dashboard",
           component: DashboardView,
           meta: {
             title: "Dashboard Vận hành",
@@ -87,6 +87,15 @@ const router = createRouter({
               "Theo dõi hợp tác và tài trợ cho cuộc thi Python Master",
           },
         },
+        {
+          path: "settings",
+          name: "settings",
+          component: SettingsView,
+          meta: {
+            title: "Cài đặt",
+            description: "Quản lý tài khoản, thông báo và bảo mật hệ thống",
+          },
+        },
       ],
     },
     {
@@ -97,13 +106,15 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  const { isLoggedIn } = useAuth();
+  const { ensureSession } = useAuth();
 
-  if (to.meta.requiresAuth && !isLoggedIn.value) {
+  const isAuthenticated = ensureSession();
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
     return { name: "login" };
   }
 
-  if (to.name === "login" && isLoggedIn.value) {
+  if (to.name === "login" && isAuthenticated) {
     return { name: "dashboard-overview" };
   }
 });

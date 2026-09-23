@@ -1,48 +1,74 @@
 <script setup lang="ts">
+import type { DashboardRegion } from "@/types/dashboard-api";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Progress } from "@/components/ui/progress";
-import { regionData } from "@/mocks/dashboardCharts";
 
-const regions = ["Miền Bắc", "Miền Trung", "Miền Nam"];
+// Props
 
-const summaryData = regions.map((region) => {
-  const cities = regionData.filter((item) => item.region === region);
+defineProps<{
+  regions: DashboardRegion[];
+}>();
 
-  const registrations = cities.reduce(
-    (sum, item) => sum + item.registrations,
-    0,
-  );
+// Formatters
 
-  const target = cities.reduce((sum, item) => sum + item.target, 0);
+const numberFormatter = new Intl.NumberFormat("vi-VN");
 
-  const progress = target > 0 ? Math.round((registrations / target) * 100) : 0;
-
-  return {
-    region,
-    registrations,
-    target,
-    progress,
-  };
+const percentageFormatter = new Intl.NumberFormat("vi-VN", {
+  maximumFractionDigits: 1,
 });
+
+function formatPercentage(value: number): string {
+  return `${percentageFormatter.format(value)}%`;
+}
 </script>
 
 <template>
   <div class="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
-    <Card v-for="item in summaryData" :key="item.region" class="">
-      <CardHeader class="">
-        <CardTitle>{{ item.region }}</CardTitle>
+    <!-- Empty state -->
+
+    <Card v-if="regions.length === 0" class="md:col-span-3">
+      <CardContent class="text-sm text-muted-foreground">
+        Không có dữ liệu khu vực trong khoảng thời gian này.
+      </CardContent>
+    </Card>
+
+    <!-- Regional cards -->
+
+    <Card
+      v-for="region in regions"
+      :key="region.regionName"
+      class="min-w-0 gap-4"
+    >
+      <CardHeader>
+        <CardTitle>
+          {{ region.regionName }}
+        </CardTitle>
       </CardHeader>
 
       <CardContent class="space-y-3">
-        <p class="text-sm text-muted-foreground">
-          {{ item.registrations }} / {{ item.target }} chỉ tiêu
-        </p>
+        <!-- Candidate count -->
 
-        <Progress :model-value="Math.min(item.progress, 100)" class="h-2" />
+        <div class="space-y-1">
+          <p class="text-3xl font-semibold tabular-nums">
+            {{ numberFormatter.format(region.count) }}
+          </p>
+
+          <p class="text-sm text-muted-foreground">Số thí sinh</p>
+        </div>
+
+        <!-- Regional percentage -->
+
+        <Progress
+          :model-value="Math.min(100, Math.max(0, region.percentage))"
+          :aria-label="`Tỷ trọng ${region.regionName}`"
+          class="h-2"
+        />
 
         <p class="text-sm font-medium text-muted-foreground">
-          {{ item.progress }}% hoàn thành
+          {{ formatPercentage(region.percentage) }}
+          tổng số thí sinh
         </p>
       </CardContent>
     </Card>

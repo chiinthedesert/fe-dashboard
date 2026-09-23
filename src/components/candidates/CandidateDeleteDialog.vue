@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PartnerResponse } from "@/types/partner-api";
+import type { CandidateResponse } from "@/types/candidate-api";
 
 import {
   AlertDialog,
@@ -12,11 +12,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Props and events
-
 const props = defineProps<{
   open: boolean;
-  partner: PartnerResponse | null;
+  candidate: CandidateResponse | null;
   deleting: boolean;
   error: string;
 }>();
@@ -25,8 +23,6 @@ const emit = defineEmits<{
   "update:open": [value: boolean];
   confirm: [];
 }>();
-
-// Dialog actions
 
 function updateOpen(value: boolean) {
   if (!props.deleting) {
@@ -38,29 +34,21 @@ function updateOpen(value: boolean) {
 <template>
   <AlertDialog :open="open" @update:open="updateOpen">
     <AlertDialogContent>
-      <!-- Dialog header -->
-
       <AlertDialogHeader>
-        <AlertDialogTitle> Xóa đối tác? </AlertDialogTitle>
+        <AlertDialogTitle> Xóa thí sinh? </AlertDialogTitle>
 
         <AlertDialogDescription>
           Bạn có chắc chắn muốn xóa
-
           <span class="font-semibold text-foreground">
-            {{ partner?.tenDoanhNghiep }}
+            {{ candidate?.hoTen || "thí sinh này" }}
           </span>
-
-          khỏi danh sách đối tác? Hành động này không thể hoàn tác.
+          khỏi danh sách thí sinh? Hành động này không thể hoàn tác.
         </AlertDialogDescription>
       </AlertDialogHeader>
-
-      <!-- API error -->
 
       <p v-if="error" role="alert" class="text-sm text-destructive">
         {{ error }}
       </p>
-
-      <!-- Dialog actions -->
 
       <AlertDialogFooter>
         <AlertDialogCancel :disabled="deleting"> Hủy </AlertDialogCancel>
@@ -70,7 +58,7 @@ function updateOpen(value: boolean) {
           class="bg-destructive text-white hover:bg-destructive/90"
           @click.prevent="emit('confirm')"
         >
-          {{ deleting ? "Đang xóa..." : "Xóa đối tác" }}
+          {{ deleting ? "Đang xóa..." : "Xóa thí sinh" }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

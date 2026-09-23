@@ -2,7 +2,7 @@
 import { computed } from "vue";
 
 import type { ChartConfig } from "@/components/ui/chart";
-import type { DashboardEducationLevel } from "@/types/dashboard-api";
+import type { DashboardRegion } from "@/types/dashboard-api";
 
 import { Donut } from "@unovis/ts";
 import { VisDonut, VisSingleContainer } from "@unovis/vue";
@@ -25,18 +25,18 @@ import {
 // Props
 
 const props = defineProps<{
-  educationLevels: DashboardEducationLevel[];
+  regions: DashboardRegion[];
 }>();
 
 // Chart data
 
 const chartData = computed(() =>
-  props.educationLevels
-    .filter((item) => item.count > 0)
-    .map((item, index) => ({
-      ...item,
-      key: `board${index}`,
-      fill: `var(--color-board${index})`,
+  props.regions
+    .filter((region) => region.count > 0)
+    .map((region, index) => ({
+      ...region,
+      key: `region${index}`,
+      fill: `var(--color-region${index})`,
     })),
 );
 
@@ -44,24 +44,16 @@ type Data = (typeof chartData.value)[number];
 
 // Chart configuration
 
-function getBoardLabel(item: DashboardEducationLevel): string {
-  if (item.code === "TABLE_A") return "Bảng A";
-  if (item.code === "TABLE_B") return "Bảng B";
-
-  return item.name;
-}
-
 const chartConfig = computed<ChartConfig>(() => {
   const config: ChartConfig = {
     count: {
       label: "Số thí sinh",
-      color: undefined,
     },
   };
 
-  chartData.value.forEach((item, index) => {
-    config[item.key] = {
-      label: getBoardLabel(item),
+  chartData.value.forEach((region, index) => {
+    config[region.key] = {
+      label: region.regionName,
       color: `var(--chart-${(index % 5) + 1})`,
     };
   });
@@ -72,7 +64,7 @@ const chartConfig = computed<ChartConfig>(() => {
 // Summary
 
 const total = computed(() =>
-  chartData.value.reduce((sum, item) => sum + item.count, 0),
+  chartData.value.reduce((sum, region) => sum + region.count, 0),
 );
 
 // Formatters
@@ -83,21 +75,9 @@ const percentageFormatter = new Intl.NumberFormat("vi-VN", {
   maximumFractionDigits: 1,
 });
 
-function getPercentage(count: number): string {
-  if (total.value === 0) return "0%";
-
-  return `${percentageFormatter.format((count / total.value) * 100)}%`;
+function formatPercentage(value: number): string {
+  return `${percentageFormatter.format(value)}%`;
 }
-
-// Tooltip
-
-const tooltipTriggers = computed(() => ({
-  [Donut.selectors.segment]: componentToString(
-    chartConfig.value,
-    ChartTooltipContent,
-    { hideLabel: true },
-  )!,
-}));
 </script>
 
 <template>
@@ -105,10 +85,10 @@ const tooltipTriggers = computed(() => ({
     <!-- Chart header -->
 
     <CardHeader>
-      <CardTitle>Phân bố theo bảng thi</CardTitle>
+      <CardTitle> Phân bố thí sinh theo khu vực </CardTitle>
 
       <CardDescription>
-        Số lượng và tỷ trọng thí sinh theo bảng thi
+        Số lượng và tỷ trọng thí sinh trong khoảng thời gian đã chọn
       </CardDescription>
     </CardHeader>
 
@@ -121,20 +101,18 @@ const tooltipTriggers = computed(() => ({
         v-if="total === 0"
         class="flex h-64 items-center justify-center text-sm text-muted-foreground"
       >
-        Không có dữ liệu bảng thi trong khoảng thời gian này.
+        Không có dữ liệu khu vực trong khoảng thời gian này.
       </div>
 
       <!-- Pie chart and legend -->
-
       <div
         v-else
         class="grid min-w-0 grid-cols-1 items-center gap-6 md:grid-cols-2"
       >
         <!-- Pie chart -->
-
         <ChartContainer
           :config="chartConfig"
-          class="mx-auto aspect-square size-64 min-w-0"
+          class="aspect-auto h-64 w-full min-w-0"
         >
           <VisSingleContainer
             :data="chartData"
@@ -144,11 +122,17 @@ const tooltipTriggers = computed(() => ({
               :value="(d: Data) => d.count"
               :color="(d: Data) => d.fill"
               :arc-width="0"
-              :pad-angle="0"
-              :corner-radius="0"
             />
 
-            <ChartTooltip :triggers="tooltipTriggers" />
+            <ChartTooltip
+              :triggers="{
+                [Donut.selectors.segment]: componentToString(
+                  chartConfig,
+                  ChartTooltipContent,
+                  { hideLabel: true },
+                )!,
+              }"
+            />
           </VisSingleContainer>
         </ChartContainer>
 
@@ -156,31 +140,29 @@ const tooltipTriggers = computed(() => ({
 
         <div class="mx-auto flex w-full max-w-xs min-w-0 flex-col gap-4 px-4">
           <div
-            v-for="item in chartData"
-            :key="item.key"
+            v-for="region in chartData"
+            :key="region.key"
             class="flex items-center gap-3"
           >
             <div
               class="size-3 shrink-0 rounded-xs"
               :style="{
-                backgroundColor: chartConfig[item.key]?.color,
+                backgroundColor: chartConfig[region.key]?.color,
               }"
             />
 
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-medium">
-                {{ getBoardLabel(item) }}
+                {{ region.regionName }}
               </p>
 
               <p class="text-xs text-muted-foreground tabular-nums">
-                {{ numberFormatter.format(item.count) }} thí sinh
+                {{ numberFormatter.format(region.count) }} thí sinh
               </p>
             </div>
 
-            <!-- Board percentage -->
-
             <span class="shrink-0 text-base font-semibold tabular-nums">
-              {{ getPercentage(item.count) }}
+              {{ formatPercentage(region.percentage) }}
             </span>
           </div>
 

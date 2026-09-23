@@ -10,21 +10,26 @@ Frontend cho hệ thống dashboard quản trị **Python Master**, được xâ
 - Tailwind CSS
 - shadcn-vue
 - Lucide Vue Next
-- Chart.js
 
 ## Trạng thái hiện tại
+### Vấn đề còn cần BE
 
 Backend API, dữ liệu thật và chức năng đăng nhập quản trị viên sẽ được tích hợp sau. Thắc mắc hỏi tự thân search, hỏi AI hoặc hỏi Chí (hiện tại cũng chả biết gì, đang cố)
 
-- [ ] Dashboard Vận Hành
-    - [ ] Tổng Quan
-    - [ ] Theo Khu Vực
-    - [ ] Bảng Thi & Độ Tuổi
-    - [ ] Trường Học
-- [ ] Quản Lý Thí Sinh
-- [ ] Quản Lý Đối Tác
-- [ ] Style lại màu và theme
-- [ ] Tích Hợp API dữ liệu thật
+- [x] Dashboard Vận Hành
+   - [x] Tổng Quan
+    - [x] Theo Khu Vực
+    - [x] Bảng Thi & Độ Tuổi
+    - [x] Trường Học
+- [x] Quản Lý Thí Sinh
+- [x] Quản Lý Đối Tác
+- [x] Style lại màu và theme
+- [x] Tích Hợp API dữ liệu thật
+    - [x] Authentication
+    - [x] Dashboard
+    - [x] Thi sinh
+    - [x] Doi tac
+- [ ] Cài đặt View
 
 ## Yêu cầu trước khi cài đặt
 

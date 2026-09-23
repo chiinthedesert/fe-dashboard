@@ -66,17 +66,8 @@ type RegionRow = (typeof regionData)[number];
 
 const numberFormatter = new Intl.NumberFormat("vi-VN");
 function isNumericColumn(id: string) {
-  return ["registrations", "target", "conversion"].includes(id);
+  return ["registrations", "target", "progress", "conversion"].includes(id);
 }
-
-const columnLabels: Record<string, string> = {
-  city: "Tỉnh / Thành",
-  region: "Khu vực",
-  registrations: "Đăng ký",
-  target: "Chỉ tiêu",
-  progress: "Tiến độ",
-  conversion: "Tỷ lệ chuyển đổi",
-};
 
 function getProgress(row: RegionRow) {
   return row.target > 0 ? (row.registrations / row.target) * 100 : null;
@@ -191,9 +182,29 @@ watch(currentPage, (page) => {
 
 <template>
   <Card class="min-w-0 w-full gap-4 py-4">
-    <CardHeader class="px-4">
-      <CardTitle>Chi tiết theo tỉnh / thành</CardTitle>
-      <CardDescription>Tiến độ đăng ký so với chỉ tiêu</CardDescription>
+    <CardHeader class="space-y-3 px-4">
+      <!-- Table header -->
+
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <CardTitle> Chi tiết theo tỉnh / thành </CardTitle>
+
+        <Badge variant="outline"> Dữ liệu minh họa </Badge>
+      </div>
+
+      <CardDescription>
+        Tiến độ đăng ký so với chỉ tiêu theo tỉnh / thành
+      </CardDescription>
+
+      <!-- Demo data notice -->
+
+      <div
+        role="note"
+        class="rounded-lg border border-dashed bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
+      >
+        Bảng này sử dụng dữ liệu mẫu để minh họa chức năng thống kê theo tỉnh /
+        thành. Số liệu chưa được kết nối với backend và không thay đổi theo bộ
+        lọc thời gian của dashboard.
+      </div>
     </CardHeader>
 
     <CardContent class="min-w-0 space-y-4 px-4">
@@ -296,25 +307,31 @@ watch(currentPage, (page) => {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    class="h-auto min-h-8 w-full min-w-0 justify-start gap-1 whitespace-normal"
+                    class="h-auto min-h-8 w-full min-w-0 gap-1 whitespace-normal"
+                    :class="
+                      isNumericColumn(header.column.id)
+                        ? 'justify-center'
+                        : 'justify-start'
+                    "
                     @click="header.column.toggleSorting()"
                   >
-                    <span
-                      class="min-w-0 whitespace-normal text-left leading-tight"
-                    >
+                    <span class="min-w-0 whitespace-normal leading-tight">
                       <FlexRender
                         :render="header.column.columnDef.header"
                         :props="header.getContext()"
                       />
                     </span>
+
                     <ArrowUp
                       v-if="header.column.getIsSorted() === 'asc'"
                       class="size-3.5 shrink-0"
                     />
+
                     <ArrowDown
                       v-else-if="header.column.getIsSorted() === 'desc'"
                       class="size-3.5 shrink-0"
                     />
+
                     <ArrowUpDown
                       v-else
                       class="size-3.5 shrink-0 text-muted-foreground"
@@ -356,7 +373,7 @@ watch(currentPage, (page) => {
                   <template v-else-if="cell.column.id === 'progress'">
                     <div
                       v-if="getProgress(row.original) !== null"
-                      class="flex min-w-28 items-center gap-2"
+                      class="flex min-w-28 items-center justify-center gap-2"
                     >
                       <Progress
                         :model-value="

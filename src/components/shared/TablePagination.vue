@@ -2,6 +2,13 @@
 import { computed, ref, watch } from "vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const props = withDefaults(
   defineProps<{
@@ -61,27 +68,26 @@ function changePage(page: number) {
       <div class="flex items-center gap-2">
         <span class="text-sm text-muted-foreground">Số dòng</span>
 
-        <div
-          role="group"
-          aria-label="Số dòng mỗi trang"
-          class="inline-flex overflow-hidden rounded-md border"
+        <Select
+          :model-value="String(pageSize)"
+          @update:model-value="
+            (value) => emit('update:pageSize', Number(value))
+          "
         >
-          <Button
-            v-for="size in pageSizes"
-            :key="size"
-            type="button"
-            variant="ghost"
-            size="sm"
-            class="rounded-none border-r px-3 last:border-r-0"
-            :class="{
-              'bg-accent text-accent-foreground': pageSize === size,
-            }"
-            :aria-pressed="pageSize === size"
-            @click="emit('update:pageSize', size)"
-          >
-            {{ size }}
-          </Button>
-        </div>
+          <SelectTrigger class="w-24" aria-label="Số dòng mỗi trang">
+            <SelectValue placeholder="Số dòng" />
+          </SelectTrigger>
+
+          <SelectContent>
+            <SelectItem
+              v-for="size in pageSizes"
+              :key="size"
+              :value="String(size)"
+            >
+              {{ size }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
 

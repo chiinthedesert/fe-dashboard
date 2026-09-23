@@ -1,64 +1,506 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { nextTick, ref, watch } from "vue";
 
 import CandidatesTable from "@/components/candidates/CandidatesTable.vue";
 import CandidateFormDialog from "@/components/candidates/CandidateFormDialog.vue";
+import CandidateDeleteDialog from "@/components/candidates/CandidateDeleteDialog.vue";
+import CandidateBulkDeleteDialog from "@/components/candidates/CandidateBulkDeleteDialog.vue";
 
-import { mockCandidates } from "@/mocks/candidates";
-import { mockSalesPeople } from "@/mocks/salesPeople";
+import {
+  getCandidates,
+  createCandidate,
+  updateCandidate,
+  deleteCandidate,
+  exportCandidates,
+  importCandidates,
+} from "@/services/candidates";
 
-import type { Candidate, CandidateFormValues } from "@/types/candidate";
+import type {
+  CandidateResponse,
+  CandidatePage,
+  CreateCandidateRequest,
+} from "@/types/candidate-api";
 
-const candidates = ref<Candidate[]>(
-  mockCandidates.map((candidate) => ({ ...candidate })),
+// Candidate data
+const candidates = ref<CandidateResponse[]>([]);
+
+// Search and pagination
+const keyword = ref("");
+const searchKeyword = ref("");
+
+// Candidate filters
+const selectedStatus = ref("");
+
+// Sorting
+const sortBy = ref("");
+const sortDir = ref<"asc" | "desc">("asc");
+
+const page = ref(1);
+const pageSize = ref(10);
+
+const totalElements = ref(0);
+const totalPages = ref(0);
+
+// State
+const loading = ref(false);
+const errorMessage = ref("");
+const formOpen = ref(false);
+const saving = ref(false);
+const formError = ref("");
+const editingCandidate = ref<CandidateResponse | null>(null);
+
+const deleteOpen = ref(false);
+const deletingCandidate = ref<CandidateResponse | null>(null);
+const deleting = ref(false);
+const deleteError = ref("");
+
+const bulkDeleteOpen = ref(false);
+const selectedCandidateIds = ref<number[]>([]);
+const bulkDeleting = ref(false);
+const bulkDeleteError = ref("");
+
+const exporting = ref(false);
+const exportError = ref("");
+
+const importing = ref(false);
+const importError = ref("");
+
+const importInput = ref<HTMLInputElement | null>(null);
+
+// Trigger a new request after creating a candidate.
+const refreshKey = ref(0);
+
+const candidatesTableRef = ref<InstanceType<typeof CandidatesTable> | null>(
+  null,
 );
 
-const formOpen = ref(false);
-const editingCandidate = ref<Candidate | null>(null);
+// Debounce search requests.
+watch(keyword, (value, _, onCleanup) => {
+  const timer = setTimeout(() => {
+    page.value = 1;
+    searchKeyword.value = value.trim();
+  }, 300);
 
-// Increment independently so deleted IDs are not reused during this session.
-let nextId =
-  Math.max(1000, ...candidates.value.map((candidate) => candidate.id)) + 1;
+  onCleanup(() => clearTimeout(timer));
+});
 
-function openAddDialog() {
-  editingCandidate.value = null;
-  formOpen.value = true;
+// Fetch candidates whenever the query changes.
+watch(
+  [page, pageSize, searchKeyword, selectedStatus, sortBy, sortDir, refreshKey],
+  async (_, __, onCleanup) => {
+    let cancelled = false;
+
+    onCleanup(() => {
+      cancelled = true;
+    });
+
+    loading.value = true;
+    errorMessage.value = "";
+
+    try {
+      const result: CandidatePage = await getCandidates({
+        keyword: searchKeyword.value || undefined,
+        trangThai: selectedStatus.value || undefined,
+
+        page: page.value - 1,
+        size: pageSize.value,
+
+        sortBy: sortBy.value || undefined,
+        sortDir: sortBy.value ? sortDir.value : undefined,
+      });
+
+      if (cancelled) return;
+
+      candidates.value = result.items ?? [];
+      totalElements.value = result.totalElements ?? 0;
+      totalPages.value = result.totalPages ?? 0;
+    } catch (error) {
+      if (cancelled) return;
+
+      candidates.value = [];
+      totalElements.value = 0;
+      totalPages.value = 0;
+
+      errorMessage.value =
+        error instanceof Error
+          ? error.message
+          : "Không thể tải danh sách thí sinh.";
+    } finally {
+      if (!cancelled) {
+        loading.value = false;
+      }
+    }
+  },
+  { immediate: true },
+);
+
+// Change page size.
+function changePageSize(size: number) {
+  page.value = 1;
+  pageSize.value = size;
 }
 
-function openEditDialog(candidate: Candidate) {
-  editingCandidate.value = candidate;
-  formOpen.value = true;
+// Candidate filters
+function changeStatus(value: string) {
+  page.value = 1;
+  selectedStatus.value = value;
 }
 
-function saveCandidate(values: CandidateFormValues) {
-  if (editingCandidate.value) {
-    const id = editingCandidate.value.id;
+// Sorting
 
-    candidates.value = candidates.value.map((candidate) =>
-      candidate.id === id ? { ...candidate, ...values } : candidate,
-    );
+function changeSort(field: string) {
+  page.value = 1;
+
+  if (sortBy.value === field) {
+    sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
   } else {
-    candidates.value = [{ id: nextId++, ...values }, ...candidates.value];
+    sortBy.value = field;
+    sortDir.value = "asc";
+  }
+}
+
+// Open candidate creation dialog.
+function openAddDialog() {
+  if (saving.value) return;
+
+  editingCandidate.value = null;
+
+  formError.value = "";
+  formOpen.value = true;
+}
+
+// Open candidate editing dialog.
+function openEditDialog(candidate: CandidateResponse) {
+  if (saving.value) return;
+
+  editingCandidate.value = { ...candidate };
+
+  formError.value = "";
+  formOpen.value = true;
+}
+
+async function handleSaveCandidate(values: CreateCandidateRequest) {
+  if (saving.value) return;
+
+  saving.value = true;
+  formError.value = "";
+
+  // Determine the operation before modifying editingCandidate.
+  const candidateToEdit = editingCandidate.value;
+
+  try {
+    if (candidateToEdit) {
+      // Update the existing candidate.
+      await updateCandidate(candidateToEdit.id, values);
+    } else {
+      // Create a new candidate.
+      await createCandidate(values);
+
+      // Return to the first page after creation.
+      keyword.value = "";
+      searchKeyword.value = "";
+      page.value = 1;
+    }
+
+    // Only close the dialog after a successful request.
+    formOpen.value = false;
+    editingCandidate.value = null;
+
+    // Reload the candidate list from the backend.
+    refreshKey.value++;
+  } catch (error) {
+    formError.value =
+      error instanceof Error
+        ? error.message
+        : "Không thể lưu thông tin thí sinh.";
+  } finally {
+    saving.value = false;
+  }
+}
+
+function openDeleteDialog(candidate: CandidateResponse) {
+  deletingCandidate.value = candidate;
+  deleteError.value = "";
+  deleteOpen.value = true;
+}
+
+async function handleDeleteCandidate() {
+  if (!deletingCandidate.value || deleting.value) {
+    return;
   }
 
-  formOpen.value = false;
-  editingCandidate.value = null;
+  deleting.value = true;
+  deleteError.value = "";
+
+  try {
+    await deleteCandidate(deletingCandidate.value.id);
+
+    deletingCandidate.value = null;
+    deleteOpen.value = false;
+
+    // If the current page becomes empty,
+    // move back to the previous page.
+    const remainingTotal = Math.max(0, totalElements.value - 1);
+
+    const lastPage = Math.max(1, Math.ceil(remainingTotal / pageSize.value));
+
+    if (page.value > lastPage) {
+      page.value = lastPage;
+    } else {
+      refreshKey.value++;
+    }
+
+    // Reload the candidate list.
+  } catch (error) {
+    deleteError.value =
+      error instanceof Error
+        ? error.message
+        : "Không thể xóa thí sinh. Vui lòng thử lại.";
+  } finally {
+    deleting.value = false;
+  }
+}
+
+async function handleExportCandidates() {
+  if (exporting.value) return;
+
+  exporting.value = true;
+  exportError.value = "";
+
+  try {
+    const file = await exportCandidates({
+      keyword: searchKeyword.value || undefined,
+      trangThai: selectedStatus.value || undefined,
+    });
+
+    // Download file
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "thi-sinh.xlsx";
+
+    document.body.appendChild(link);
+
+    link.click();
+    link.remove();
+
+    // Release temporary URL
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  } catch (error) {
+    exportError.value =
+      error instanceof Error ? error.message : "Không thể xuất file Excel.";
+  } finally {
+    exporting.value = false;
+  }
+}
+
+// Open file picker
+
+function openImportFilePicker() {
+  if (importing.value) return;
+
+  importError.value = "";
+
+  importInput.value?.click();
+}
+
+// Import Excel file
+
+async function handleImportCandidates(event: Event) {
+  const input = event.target as HTMLInputElement;
+
+  const file = input.files?.[0];
+
+  if (!file || importing.value) return;
+
+  // Reset input so the same file can be selected again.
+
+  input.value = "";
+
+  // Validate file extension.
+
+  if (!/\.(xlsx|xls)$/i.test(file.name)) {
+    importError.value =
+      "Vui lòng chọn file Excel có định dạng .xlsx hoặc .xls.";
+
+    return;
+  }
+
+  importing.value = true;
+  importError.value = "";
+
+  try {
+    await importCandidates(file);
+
+    // Clear filters and return to the first page.
+
+    keyword.value = "";
+    searchKeyword.value = "";
+    selectedStatus.value = "";
+
+    page.value = 1;
+
+    // Reload the candidate list.
+
+    refreshKey.value++;
+  } catch (error) {
+    importError.value =
+      error instanceof Error
+        ? error.message
+        : "Không thể nhập file Excel. Vui lòng thử lại.";
+  } finally {
+    importing.value = false;
+  }
+}
+
+// Bulk delete dialog
+function openBulkDeleteDialog(ids: number[]) {
+  if (bulkDeleting.value || ids.length === 0) return;
+
+  selectedCandidateIds.value = [...ids];
+  bulkDeleteError.value = "";
+  bulkDeleteOpen.value = true;
+}
+
+async function handleBulkDeleteCandidates() {
+  if (bulkDeleting.value || selectedCandidateIds.value.length === 0) {
+    return;
+  }
+
+  bulkDeleting.value = true;
+  bulkDeleteError.value = "";
+
+  const ids = [...selectedCandidateIds.value];
+
+  try {
+    const results = await Promise.allSettled(
+      ids.map((id) => deleteCandidate(id)),
+    );
+
+    const failedIds = ids.filter(
+      (_, index) => results[index]?.status === "rejected",
+    );
+
+    const deletedCount = ids.length - failedIds.length;
+
+    selectedCandidateIds.value = failedIds;
+
+    // Refresh the table after successful deletions.
+
+    if (deletedCount > 0) {
+      const remainingTotal = Math.max(0, totalElements.value - deletedCount);
+
+      const lastPage = Math.max(1, Math.ceil(remainingTotal / pageSize.value));
+
+      if (page.value > lastPage) {
+        page.value = lastPage;
+      } else {
+        refreshKey.value++;
+      }
+    }
+
+    // Keep the dialog open if some requests failed.
+
+    if (failedIds.length > 0) {
+      bulkDeleteError.value =
+        `Đã xóa ${deletedCount}/${ids.length} thí sinh. ` +
+        `${failedIds.length} thí sinh không thể xóa.`;
+
+      return;
+    }
+
+    // Close and reset after successful deletion.
+
+    bulkDeleteOpen.value = false;
+    selectedCandidateIds.value = [];
+
+    await nextTick();
+    candidatesTableRef.value?.clearSelection();
+  } finally {
+    bulkDeleting.value = false;
+  }
 }
 </script>
 
 <template>
   <section class="min-w-0">
     <CandidatesTable
+      ref="candidatesTableRef"
       :candidates="candidates"
+      :keyword="keyword"
+      :status="selectedStatus"
+      :page="page"
+      :page-size="pageSize"
+      :total="totalElements"
+      :total-pages="totalPages"
+      :loading="loading"
+      :error="errorMessage"
+      :exporting="exporting"
+      :sort-by="sortBy"
+      :sort-dir="sortDir"
+      :importing="importing"
+      @update:keyword="keyword = $event"
+      @update:status="changeStatus"
+      @update:page="page = $event"
+      @update:page-size="changePageSize"
       @add="openAddDialog"
       @edit="openEditDialog"
+      @delete="openDeleteDialog"
+      @export-file="handleExportCandidates"
+      @delete-selected="openBulkDeleteDialog"
+      @sort="changeSort"
+      @import-file="openImportFilePicker"
     />
 
+    <!-- Excel file input -->
+
+    <input
+      ref="importInput"
+      type="file"
+      accept=".xlsx,.xls"
+      class="hidden"
+      aria-label="Chọn file Excel để nhập thí sinh"
+      @change="handleImportCandidates"
+    />
+
+    <!-- Import error -->
+
+    <p v-if="importError" role="alert" class="mt-3 text-sm text-destructive">
+      {{ importError }}
+    </p>
+
+    <p v-if="exportError" role="alert" class="mt-3 text-sm text-destructive">
+      {{ exportError }}
+    </p>
+
+    <!-- Create / Edit candidate -->
     <CandidateFormDialog
       v-model:open="formOpen"
       :candidate="editingCandidate"
-      :sales-people="mockSalesPeople"
-      @submit="saveCandidate"
+      :saving="saving"
+      :error="formError"
+      @submit="handleSaveCandidate"
+    />
+
+    <!-- Delete confirmation -->
+    <CandidateDeleteDialog
+      v-model:open="deleteOpen"
+      :candidate="deletingCandidate"
+      :deleting="deleting"
+      :error="deleteError"
+      @confirm="handleDeleteCandidate"
+    />
+
+    <!-- Bulk delete confirmation -->
+    <CandidateBulkDeleteDialog
+      v-model:open="bulkDeleteOpen"
+      :count="selectedCandidateIds.length"
+      :deleting="bulkDeleting"
+      :error="bulkDeleteError"
+      @confirm="handleBulkDeleteCandidates"
     />
   </section>
 </template>
