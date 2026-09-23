@@ -14,7 +14,7 @@ Frontend cho hệ thống dashboard quản trị **Python Master**, được xâ
 ## Trạng thái hiện tại
 ### Vấn đề còn cần BE
 
-Backend API, dữ liệu thật và chức năng đăng nhập quản trị viên sẽ được tích hợp sau. Thắc mắc hỏi tự thân search, hỏi AI hoặc hỏi Chí (hiện tại cũng chả biết gì, đang cố)
+Backend API, dữ liệu demo và chức năng đăng nhập quản trị viên sẽ được tích hợp sau. Thắc mắc hỏi tự thân search, hỏi AI hoặc hỏi Chí (hiện tại cũng chả biết gì, đang cố)
 
 - [x] Dashboard Vận Hành
    - [x] Tổng Quan
@@ -24,12 +24,12 @@ Backend API, dữ liệu thật và chức năng đăng nhập quản trị viê
 - [x] Quản Lý Thí Sinh
 - [x] Quản Lý Đối Tác
 - [x] Style lại màu và theme
-- [x] Tích Hợp API dữ liệu thật
+- [x] Tích Hợp API dữ liệu demo
     - [x] Authentication
     - [x] Dashboard
     - [x] Thi sinh
     - [x] Doi tac
-- [ ] Cài đặt View
+- [X] Cài đặt View
 
 ## Yêu cầu trước khi cài đặt
 

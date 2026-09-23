@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, watch } from "vue";
+
 import {
   FlexRender,
   columnFilteringFeature,
@@ -26,12 +27,11 @@ import {
   Search,
 } from "lucide-vue-next";
 
-import { regionData } from "@/mocks/dashboardCharts";
+import type { DashboardProvincePerformance } from "@/types/dashboard-api";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import {
   Card,
   CardContent,
@@ -62,17 +62,31 @@ import {
 } from "@/components/ui/table";
 import TablePagination from "@/components/shared/TablePagination.vue";
 
-type RegionRow = (typeof regionData)[number];
+// Data and request state
+const props = defineProps<{
+  provinces: DashboardProvincePerformance[];
+  loading: boolean;
+  error: string;
+}>();
+
+type ProvinceRow = DashboardProvincePerformance;
 
 const numberFormatter = new Intl.NumberFormat("vi-VN");
-function isNumericColumn(id: string) {
-  return ["registrations", "target", "progress", "conversion"].includes(id);
+const percentFormatter = new Intl.NumberFormat("vi-VN", {
+  maximumFractionDigits: 1,
+});
+
+function isNumericColumn(id: string): boolean {
+  return ["registrations", "confirmedParticipants", "conversionRate"].includes(id);
 }
 
-function getProgress(row: RegionRow) {
-  return row.target > 0 ? (row.registrations / row.target) * 100 : null;
-}
+const regionOptions = computed(() =>
+  [...new Set(props.provinces.map((item) => item.region).filter(Boolean))].sort(
+    (a, b) => a.localeCompare(b, "vi"),
+  ),
+);
 
+// Table features and columns
 const features = tableFeatures({
   columnFilteringFeature,
   columnVisibilityFeature,
@@ -87,47 +101,35 @@ const features = tableFeatures({
     includesString: filterFn_includesString,
     equalsString: filterFn_equalsString,
   },
-
   sortFns: {
     text: sortFn_text,
     basic: sortFn_basic,
   },
 });
 
-const columnHelper = createColumnHelper<typeof features, RegionRow>();
+const columnHelper = createColumnHelper<typeof features, ProvinceRow>();
 
 const columns = columnHelper.columns([
-  columnHelper.accessor("city", {
+  columnHelper.accessor("province", {
     header: "Tỉnh / Thành",
     enableHiding: false,
     filterFn: "includesString",
     sortFn: "text",
   }),
-
   columnHelper.accessor("region", {
     header: "Khu vực",
     filterFn: "equalsString",
     sortFn: "text",
   }),
-
   columnHelper.accessor("registrations", {
     header: "Đăng ký",
     sortFn: "basic",
   }),
-
-  columnHelper.accessor("target", {
-    header: "Chỉ tiêu",
+  columnHelper.accessor("confirmedParticipants", {
+    header: "Xác nhận tham gia",
     sortFn: "basic",
   }),
-
-  columnHelper.accessor((row) => getProgress(row) ?? undefined, {
-    id: "progress",
-    header: "Tiến độ",
-    sortFn: "basic",
-    sortUndefined: "last",
-  }),
-
-  columnHelper.accessor("conversion", {
+  columnHelper.accessor("conversionRate", {
     header: "Tỷ lệ chuyển đổi",
     sortFn: "basic",
   }),
@@ -135,21 +137,18 @@ const columns = columnHelper.columns([
 
 const table = useTable({
   features,
-  data: regionData,
+  data: computed(() => props.provinces),
   columns,
-
   initialState: {
-    pagination: {
-      pageIndex: 0,
-      pageSize: 10,
-    },
+    pagination: { pageIndex: 0, pageSize: 10 },
   },
 });
 
-const citySearch = computed({
-  get: () => String(table.getColumn("city")?.getFilterValue() ?? ""),
+// Search, filtering, pagination
+const provinceSearch = computed({
+  get: () => String(table.getColumn("province")?.getFilterValue() ?? ""),
   set: (value: string) => {
-    table.getColumn("city")?.setFilterValue(value);
+    table.getColumn("province")?.setFilterValue(value);
     table.setPageIndex(0);
   },
 });
@@ -157,10 +156,7 @@ const citySearch = computed({
 const selectedRegion = computed({
   get: () => String(table.getColumn("region")?.getFilterValue() ?? "all"),
   set: (value: string) => {
-    table
-      .getColumn("region")
-      ?.setFilterValue(value === "all" ? undefined : value);
-
+    table.getColumn("region")?.setFilterValue(value === "all" ? undefined : value);
     table.setPageIndex(0);
   },
 });
@@ -170,81 +166,67 @@ function changePageSize(size: number) {
   table.setPageIndex(0);
 }
 
-const currentPage = computed(() => table.atoms.pagination.get().pageIndex + 1);
+// Keep the page within bounds when filters or the date range change.
+watch(
+  () => table.getFilteredRowModel().rows.length,
+  (total) => {
+    const { pageIndex, pageSize } = table.atoms.pagination.get();
+    const lastPageIndex = Math.max(0, Math.ceil(total / pageSize) - 1);
+    if (pageIndex > lastPageIndex) table.setPageIndex(lastPageIndex);
+  },
+);
 
-const pageInput = ref<string | number>(currentPage.value);
-
-// Keep the input updated after filtering or using Previous/Next.
-watch(currentPage, (page) => {
-  pageInput.value = page;
-});
+watch(
+  () => props.provinces,
+  () => {
+    table.setPageIndex(0);
+    if (selectedRegion.value !== "all" && !regionOptions.value.includes(selectedRegion.value)) {
+      selectedRegion.value = "all";
+    }
+  },
+);
 </script>
 
 <template>
   <Card class="min-w-0 w-full gap-4 py-4">
-    <CardHeader class="space-y-3 px-4">
-      <!-- Table header -->
-
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <CardTitle> Chi tiết theo tỉnh / thành </CardTitle>
-
-        <Badge variant="outline"> Dữ liệu minh họa </Badge>
-      </div>
-
+    <!-- Table header -->
+    <CardHeader class="px-4">
+      <CardTitle>Chi tiết theo tỉnh / thành</CardTitle>
       <CardDescription>
-        Tiến độ đăng ký so với chỉ tiêu theo tỉnh / thành
+        Đăng ký, xác nhận tham gia và tỷ lệ chuyển đổi trong khoảng thời gian đã chọn
       </CardDescription>
-
-      <!-- Demo data notice -->
-
-      <div
-        role="note"
-        class="rounded-lg border border-dashed bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
-      >
-        Bảng này sử dụng dữ liệu mẫu để minh họa chức năng thống kê theo tỉnh /
-        thành. Số liệu chưa được kết nối với backend và không thay đổi theo bộ
-        lọc thời gian của dashboard.
-      </div>
     </CardHeader>
 
     <CardContent class="min-w-0 space-y-4 px-4">
-      <!-- Search, filter and actions -->
+      <!-- Search, region filter and column visibility -->
       <div class="@container min-w-0">
         <div
           class="grid min-w-0 grid-cols-2 gap-3 @[36rem]:grid-cols-[minmax(12rem,20rem)_10rem_10rem] @[36rem]:justify-start"
         >
-          <!-- Search -->
           <div class="relative col-span-2 min-w-0 @[36rem]:col-span-1">
             <Search
               class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
-
             <Input
-              v-model="citySearch"
+              v-model="provinceSearch"
               placeholder="Tìm tỉnh / thành..."
               aria-label="Tìm tỉnh hoặc thành phố"
-              class="w-full min-w-0 truncate pl-9 pr-3 text-sm"
+              class="w-full min-w-0 truncate pr-3 pl-9 text-sm"
             />
           </div>
 
-          <!-- Region filter -->
           <Select v-model="selectedRegion">
-            <SelectTrigger
-              class="w-full min-w-0 gap-2"
-              aria-label="Lọc theo khu vực"
-            >
+            <SelectTrigger class="w-full min-w-0 gap-2" aria-label="Lọc theo khu vực">
               <SelectValue placeholder="Khu vực" />
             </SelectTrigger>
-
             <SelectContent>
               <SelectItem value="all">Tất cả khu vực</SelectItem>
-              <SelectItem value="Miền Bắc">Miền Bắc</SelectItem>
-              <SelectItem value="Miền Trung">Miền Trung</SelectItem>
-              <SelectItem value="Miền Nam">Miền Nam</SelectItem>
+              <SelectItem v-for="region in regionOptions" :key="region" :value="region">
+                {{ region }}
+              </SelectItem>
             </SelectContent>
           </Select>
 
-          <!-- Column visibility -->
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button
@@ -252,27 +234,21 @@ watch(currentPage, (page) => {
                 variant="outline"
                 class="w-full min-w-0 justify-between gap-2 px-3 font-normal"
               >
-                <span class="min-w-0 truncate text-left"> Hiển thị cột </span>
-
+                <span class="min-w-0 truncate text-left">Hiển thị cột</span>
                 <ChevronDown class="size-4 shrink-0 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-
             <DropdownMenuContent
               align="end"
               :side-offset="4"
               class="w-max min-w-(--reka-dropdown-menu-trigger-width) max-w-[calc(100vw-1rem)]"
             >
               <DropdownMenuCheckboxItem
-                v-for="column in table
-                  .getAllLeafColumns()
-                  .filter((column) => column.getCanHide())"
+                v-for="column in table.getAllLeafColumns().filter((column) => column.getCanHide())"
                 :key="column.id"
                 :model-value="column.getIsVisible()"
                 class="pr-8 pl-2 [&>span:first-child]:right-2 [&>span:first-child]:left-auto [&_svg]:size-4 [&_svg]:text-muted-foreground"
-                @update:model-value="
-                  (value) => column.toggleVisibility(!!value)
-                "
+                @update:model-value="(value) => column.toggleVisibility(!!value)"
                 @select.prevent
               >
                 {{ column.columnDef.header }}
@@ -282,14 +258,11 @@ watch(currentPage, (page) => {
         </div>
       </div>
 
-      <!-- Horizontal scrolling on narrow screens -->
+      <!-- Responsive table -->
       <div class="min-w-0 max-w-full overflow-x-auto rounded-md border">
         <Table class="w-full">
           <TableHeader>
-            <TableRow
-              v-for="headerGroup in table.getHeaderGroups()"
-              :key="headerGroup.id"
-            >
+            <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
               <TableHead
                 v-for="header in headerGroup.headers"
                 :key="header.id"
@@ -308,11 +281,7 @@ watch(currentPage, (page) => {
                     variant="ghost"
                     size="sm"
                     class="h-auto min-h-8 w-full min-w-0 gap-1 whitespace-normal"
-                    :class="
-                      isNumericColumn(header.column.id)
-                        ? 'justify-center'
-                        : 'justify-start'
-                    "
+                    :class="isNumericColumn(header.column.id) ? 'justify-center' : 'justify-start'"
                     @click="header.column.toggleSorting()"
                   >
                     <span class="min-w-0 whitespace-normal leading-tight">
@@ -321,21 +290,12 @@ watch(currentPage, (page) => {
                         :props="header.getContext()"
                       />
                     </span>
-
-                    <ArrowUp
-                      v-if="header.column.getIsSorted() === 'asc'"
-                      class="size-3.5 shrink-0"
-                    />
-
+                    <ArrowUp v-if="header.column.getIsSorted() === 'asc'" class="size-3.5 shrink-0" />
                     <ArrowDown
                       v-else-if="header.column.getIsSorted() === 'desc'"
                       class="size-3.5 shrink-0"
                     />
-
-                    <ArrowUpDown
-                      v-else
-                      class="size-3.5 shrink-0 text-muted-foreground"
-                    />
+                    <ArrowUpDown v-else class="size-3.5 shrink-0 text-muted-foreground" />
                   </Button>
                 </div>
               </TableHead>
@@ -343,68 +303,44 @@ watch(currentPage, (page) => {
           </TableHeader>
 
           <TableBody>
-            <template v-if="table.getRowModel().rows.length">
-              <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
+            <TableRow v-if="loading">
+              <TableCell
+                :colspan="table.getVisibleLeafColumns().length"
+                class="h-24 text-center text-muted-foreground"
+              >
+                Đang tải dữ liệu tỉnh / thành...
+              </TableCell>
+            </TableRow>
+            <TableRow v-else-if="error">
+              <TableCell
+                :colspan="table.getVisibleLeafColumns().length"
+                class="h-24 text-center text-destructive"
+                role="alert"
+              >
+                {{ error }}
+              </TableCell>
+            </TableRow>
+            <template v-else-if="table.getRowModel().rows.length">
+              <TableRow v-for="row in table.getRowModel().rows" :key="row.original.province">
                 <TableCell
                   v-for="cell in row.getVisibleCells()"
                   :key="cell.id"
                   class="px-3 py-3 tabular-nums"
-                  :class="
-                    isNumericColumn(cell.column.id)
-                      ? 'text-center'
-                      : 'text-left'
-                  "
+                  :class="isNumericColumn(cell.column.id) ? 'text-center' : 'text-left'"
                 >
-                  <span
-                    v-if="cell.column.id === 'city'"
-                    class="whitespace-normal font-medium"
-                  >
-                    {{ row.original.city }}
+                  <span v-if="cell.column.id === 'province'" class="whitespace-normal font-medium">
+                    {{ row.original.province || '—' }}
                   </span>
-
-                  <Badge
-                    v-else-if="cell.column.id === 'region'"
-                    variant="secondary"
-                    class="whitespace-nowrap"
-                  >
-                    {{ row.original.region }}
+                  <Badge v-else-if="cell.column.id === 'region'" variant="secondary" class="whitespace-nowrap">
+                    {{ row.original.region || '—' }}
                   </Badge>
-
-                  <template v-else-if="cell.column.id === 'progress'">
-                    <div
-                      v-if="getProgress(row.original) !== null"
-                      class="flex min-w-28 items-center justify-center gap-2"
-                    >
-                      <Progress
-                        :model-value="
-                          Math.min(
-                            100,
-                            Math.max(0, getProgress(row.original) ?? 0),
-                          )
-                        "
-                        :aria-label="`Tiến độ ${row.original.city}`"
-                        class="h-2 w-20 shrink-0"
-                      />
-
-                      <span class="text-xs tabular-nums text-muted-foreground">
-                        {{ Math.round(getProgress(row.original) ?? 0) }}%
-                      </span>
-                    </div>
-
-                    <span v-else class="text-muted-foreground">—</span>
-                  </template>
-
-                  <span v-else-if="cell.column.id === 'conversion'">
-                    {{ numberFormatter.format(row.original.conversion) }}%
+                  <span v-else-if="cell.column.id === 'conversionRate'">
+                    {{ percentFormatter.format(row.original.conversionRate) }}%
                   </span>
-
-                  <span v-else>
-                    {{ numberFormatter.format(Number(cell.getValue())) }}
-                  </span>
+                  <span v-else>{{ numberFormatter.format(Number(cell.getValue() ?? 0)) }}</span>
                 </TableCell>
               </TableRow>
             </template>
-
             <TableRow v-else>
               <TableCell
                 :colspan="table.getVisibleLeafColumns().length"
@@ -417,10 +353,10 @@ watch(currentPage, (page) => {
         </Table>
       </div>
 
-      <!-- Row count and pagination -->
+      <!-- Pagination -->
       <TablePagination
         :page="table.atoms.pagination.get().pageIndex + 1"
-        :page-count="table.getPageCount()"
+        :page-count="Math.max(1, table.getPageCount())"
         :page-size="table.atoms.pagination.get().pageSize"
         :total="table.getFilteredRowModel().rows.length"
         item-label="tỉnh"
