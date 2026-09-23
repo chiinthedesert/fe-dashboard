@@ -454,7 +454,6 @@ watch(
             @click="emit('delete-selected', [...selectedIds])"
           >
             <Trash2 class="size-4" />
-
             Xóa đã chọn
           </Button>
         </div>
@@ -633,7 +632,13 @@ watch(
 
                   <Badge
                     v-else-if="cell.column.id === 'bangDau'"
-                    variant="outline"
+                    :variant="
+                      ['Bảng A', 'TABLE_A', 'A'].includes(
+                        row.original.bangDau ?? '',
+                      )
+                        ? 'outline'
+                        : 'outline'
+                    "
                     class="whitespace-nowrap"
                   >
                     {{ row.original.bangDau || "—" }}
@@ -643,7 +648,11 @@ watch(
 
                   <Badge
                     v-else-if="cell.column.id === 'trangThai'"
-                    variant="outline"
+                    :variant="
+                      row.original.trangThaiKey === 'DA_DONG_PHI'
+                        ? 'default'
+                        : 'outline'
+                    "
                     class="whitespace-nowrap"
                   >
                     {{ row.original.trangThai || "—" }}
