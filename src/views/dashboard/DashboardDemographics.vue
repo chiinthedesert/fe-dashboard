@@ -1,79 +1,73 @@
 <script setup lang="ts">
-import { inject, ref, watch } from "vue";
+import { inject, onMounted, ref, watch } from "vue";
 import type { Ref } from "vue";
 
 import ExamBoardChart from "@/components/dashboard/ExamBoardChart.vue";
 import AgeGroupChart from "@/components/dashboard/AgeGroupChart.vue";
 
-import { getDashboardDemographics } from "@/services/dashboard";
-
+import { getAgeGroups, getDashboardDemographics } from "@/services/dashboard";
 import type {
-  DashboardFilter,
+  DashboardAgeGroups,
   DashboardEducationLevel,
+  DashboardFilter,
 } from "@/types/dashboard-api";
 
-// Dashboard filter
-
+// Shared dashboard filter
 const dashboardFilter = inject<Ref<DashboardFilter>>("dashboardFilter");
-
 if (!dashboardFilter) {
   throw new Error("Dashboard filter is unavailable.");
 }
 
-// Demographics data
-
+// Exam board statistics
 const educationLevels = ref<DashboardEducationLevel[]>([]);
-
-// Request state
-
 const loading = ref(false);
 const errorMessage = ref("");
-
-// Fetch demographics
 
 watch(
   dashboardFilter,
   async (filter, _, onCleanup) => {
     let cancelled = false;
-
-    onCleanup(() => {
-      cancelled = true;
-    });
+    onCleanup(() => { cancelled = true; });
 
     loading.value = true;
     errorMessage.value = "";
-
     try {
       const result = await getDashboardDemographics(filter);
-
-      if (cancelled) return;
-
-      educationLevels.value = result.educationLevels ?? [];
+      if (!cancelled) educationLevels.value = result.educationLevels ?? [];
     } catch (error) {
-      if (cancelled) return;
-
-      educationLevels.value = [];
-
-      errorMessage.value =
-        error instanceof Error
-          ? error.message
-          : "Không thể tải dữ liệu bảng thi.";
-    } finally {
       if (!cancelled) {
-        loading.value = false;
+        educationLevels.value = [];
+        errorMessage.value = error instanceof Error ? error.message : "Không thể tải dữ liệu bảng thi.";
       }
+    } finally {
+      if (!cancelled) loading.value = false;
     }
   },
   { immediate: true },
 );
+
+// Age-group endpoint provides full-program data, without date filters.
+const ageGroups = ref<DashboardAgeGroups | null>(null);
+const ageLoading = ref(false);
+const ageError = ref("");
+
+onMounted(async () => {
+  ageLoading.value = true;
+  ageError.value = "";
+  try {
+    ageGroups.value = await getAgeGroups();
+  } catch (error) {
+    ageGroups.value = null;
+    ageError.value = error instanceof Error ? error.message : "Không thể tải dữ liệu độ tuổi.";
+  } finally {
+    ageLoading.value = false;
+  }
+});
 </script>
 
 <template>
-  <section
-    class="grid min-w-0 grid-cols-1 items-stretch gap-4 lg:grid-cols-[3fr_2fr]"
-  >
+  <section class="grid min-w-0 grid-cols-1 items-stretch gap-4 lg:grid-cols-[3fr_2fr]">
     <!-- Exam board chart -->
-
     <div class="flex min-w-0 flex-col">
       <div
         v-if="loading"
@@ -81,7 +75,6 @@ watch(
       >
         Đang tải dữ liệu bảng thi...
       </div>
-
       <div
         v-else-if="errorMessage"
         role="alert"
@@ -89,14 +82,12 @@ watch(
       >
         {{ errorMessage }}
       </div>
-
       <ExamBoardChart v-else :education-levels="educationLevels" />
     </div>
 
-    <!-- Age group demo chart -->
-
+    <!-- Age group chart -->
     <div class="flex min-w-0 flex-col">
-      <AgeGroupChart />
+      <AgeGroupChart :age-groups="ageGroups" :loading="ageLoading" :error="ageError" />
     </div>
   </section>
 </template>

@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 import type { ChartConfig } from "@/components/ui/chart";
-import { Badge } from "@/components/ui/badge";
+import type { DashboardAgeGroups } from "@/types/dashboard-api";
+
 import { VisAxis, VisGroupedBar, VisXYContainer } from "@unovis/vue";
 
 import {
@@ -19,9 +22,40 @@ import {
   componentToString,
 } from "@/components/ui/chart";
 
-import { ageGroupData } from "@/mocks/dashboardCharts";
+// API data and request state
 
-type Data = (typeof ageGroupData)[number];
+const props = defineProps<{
+  ageGroups: DashboardAgeGroups | null;
+  loading: boolean;
+  error: string;
+}>();
+
+// Age group labels
+
+const ageGroupLabels: Record<string, string> = {
+  under15: "Dưới 15",
+  "15to17": "15–17",
+  "18to20": "18–20",
+  over20: "Trên 20",
+};
+
+// Chart data
+
+const chartData = computed(() =>
+  Object.entries(props.ageGroups ?? {}).map(([ageGroup, count]) => ({
+    ageGroup,
+    label: ageGroupLabels[ageGroup] ?? ageGroup,
+    count,
+  })),
+);
+
+type Data = (typeof chartData.value)[number];
+
+// X-axis positions
+
+const ageTicks = computed(() => chartData.value.map((_, index) => index));
+
+// Chart configuration
 
 const chartConfig = {
   count: {
@@ -30,14 +64,12 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const ageTicks = ageGroupData.map((_, index) => index);
+// Formatters
 
-// Format X-axis labels.
 function formatAgeGroup(value: number): string {
-  return ageGroupData[Math.round(value)]?.ageGroup ?? "";
+  return chartData.value[Math.round(value)]?.label ?? "";
 }
 
-// Format Y-axis values.
 function formatCount(value: number): string {
   return Math.round(value).toLocaleString("vi-VN");
 }
@@ -45,45 +77,70 @@ function formatCount(value: number): string {
 
 <template>
   <Card class="flex h-full min-w-0 w-full flex-col">
-    <CardHeader class="gap-3">
-      <!-- Chart title -->
+    <!-- Chart header -->
 
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <CardTitle> Phân bố theo nhóm tuổi </CardTitle>
-
-        <Badge variant="outline"> Dữ liệu minh họa </Badge>
-      </div>
+    <CardHeader>
+      <CardTitle> Phân bố theo nhóm tuổi </CardTitle>
 
       <CardDescription> Số lượng thí sinh theo từng nhóm tuổi </CardDescription>
 
-      <!-- Demo data notice -->
-
-      <div
-        role="note"
-        class="rounded-lg border border-dashed bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
-      >
-        Biểu đồ này sử dụng dữ liệu mẫu để minh họa chức năng thống kê độ tuổi.
-        Backend hiện chưa cung cấp số lượng thí sinh theo từng nhóm tuổi và biểu
-        đồ không thay đổi theo bộ lọc thời gian.
-      </div>
+      <p class="text-xs text-muted-foreground">
+        Toàn bộ chương trình · Không áp dụng bộ lọc thời gian
+      </p>
     </CardHeader>
 
+    <!-- Chart content -->
+
     <CardContent class="flex min-w-0 flex-1 items-center">
+      <!-- Loading state -->
+
+      <div
+        v-if="loading"
+        class="flex h-64 w-full items-center justify-center text-sm text-muted-foreground"
+      >
+        Đang tải dữ liệu độ tuổi...
+      </div>
+
+      <!-- Error state -->
+
+      <p
+        v-else-if="error"
+        role="alert"
+        class="flex h-64 w-full items-center justify-center text-center text-sm text-destructive"
+      >
+        {{ error }}
+      </p>
+
+      <!-- Empty state -->
+
+      <div
+        v-else-if="chartData.length === 0"
+        class="flex h-64 w-full items-center justify-center text-sm text-muted-foreground"
+      >
+        Không có dữ liệu độ tuổi.
+      </div>
+
+      <!-- Age group chart -->
+
       <ChartContainer
+        v-else
         :config="chartConfig"
         class="aspect-auto h-64 w-full min-w-0"
       >
-        <VisXYContainer :data="ageGroupData" :y-domain="[0, undefined]">
+        <VisXYContainer :data="chartData" :y-domain="[0, undefined]">
+          <!-- Bars -->
+
           <VisGroupedBar
-            :x="(_d: Data, i: number) => i"
+            :x="(_: Data, index: number) => index"
             :y="(d: Data) => d.count"
             :color="chartConfig.count.color"
             :rounded-corners="4"
-            :bar-padding="0.2"
+            :bar-padding="0.1"
             :group-padding="0"
           />
 
           <!-- X axis -->
+
           <VisAxis
             type="x"
             :tick-values="ageTicks"
@@ -94,6 +151,7 @@ function formatCount(value: number): string {
           />
 
           <!-- Y axis -->
+
           <VisAxis
             type="y"
             :num-ticks="4"
@@ -102,6 +160,8 @@ function formatCount(value: number): string {
             :domain-line="false"
             :grid-line="true"
           />
+
+          <!-- Tooltip -->
 
           <ChartTooltip />
 

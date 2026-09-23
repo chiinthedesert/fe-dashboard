@@ -83,3 +83,15 @@ export interface DashboardDemographics {
   regions: DashboardRegion[];
   educationLevels: DashboardEducationLevel[];
 }
+
+// Province-level participation statistics
+export interface DashboardProvincePerformance {
+  province: string;
+  region: string;
+  registrations: number;
+  confirmedParticipants: number;
+  conversionRate: number;
+}
+
+// Age-group counts are keyed by the labels returned by the backend.
+export type DashboardAgeGroups = Record<string, number>;

@@ -6,6 +6,8 @@ import type {
   RegistrationTrendResponse,
   ConversionFunnelResponse,
   DashboardDemographics,
+  DashboardProvincePerformance,
+  DashboardAgeGroups,
 } from "@/types/dashboard-api";
 
 const BASE_PATH = "/api/v1/dashboard";
@@ -84,4 +86,18 @@ export async function getDashboardDemographics(
   return apiRequest<DashboardDemographics>(
     createDashboardEndpoint("/demographics", filter),
   );
+}
+
+// Province-level participation, with the shared dashboard filters
+export async function getProvinceParticipation(
+  filter: DashboardFilter = {},
+): Promise<DashboardProvincePerformance[]> {
+  return apiRequest<DashboardProvincePerformance[]>(
+    createDashboardEndpoint("/province-participation", filter),
+  );
+}
+
+// Age-group counts: this endpoint does not accept dashboard date filters
+export async function getAgeGroups(): Promise<DashboardAgeGroups> {
+  return apiRequest<DashboardAgeGroups>(`${BASE_PATH}/age-groups`);
 }
