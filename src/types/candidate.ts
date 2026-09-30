@@ -15,9 +15,7 @@ export type CandidateApplicationStatus =
 
 export const candidatePaymentStatuses = [
   { value: "pending", label: "Chờ thanh toán" },
-  { value: "paid", label: "Đã thanh toán" },
-  { value: "failed", label: "Thất bại" },
-  { value: "cancelled", label: "Đã huỷ" },
+  { value: "completed", label: "Đã thanh toán" },
 ] as const;
 
 export type CandidatePaymentStatus =
@@ -25,10 +23,6 @@ export type CandidatePaymentStatus =
 
 // Exam divisions
 
-export const candidateDivisions = [
-  "Bảng A",
-  "Bảng B",
-] as const;
+export const candidateDivisions = ["Bảng A", "Bảng B"] as const;
 
-export type CandidateDivision =
-  (typeof candidateDivisions)[number];
+export type CandidateDivision = (typeof candidateDivisions)[number];

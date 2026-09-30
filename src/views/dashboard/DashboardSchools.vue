@@ -1,128 +1,69 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { inject, ref, watch } from "vue";
+import type { Ref } from "vue";
 
-import SchoolFollowUpTable from "@/components/dashboard/SchoolFollowUpTable.vue";
+import TopPartnersTable from "@/components/dashboard/TopPartnersTable.vue";
+import { getTopPartners } from "@/services/dashboard";
 
-import { getCandidates, getCandidateSchools } from "@/services/candidates";
+import type {
+  DashboardFilter,
+  DashboardTopPartnerItem,
+} from "@/types/dashboard-api";
 
-// School data
+const dashboardFilter = inject<Ref<DashboardFilter>>("dashboardFilter");
 
-interface SchoolSummary {
-  school: string;
-  count: number;
-  percentage: number;
+if (!dashboardFilter) {
+  throw new Error("Dashboard filter is unavailable.");
 }
 
-const schools = ref<SchoolSummary[]>([]);
-const totalCandidates = ref(0);
-
-// Request state
-
+const partners = ref<DashboardTopPartnerItem[]>([]);
+const totalCandidatesInTop = ref(0);
 const loading = ref(false);
 const errorMessage = ref("");
 
-// Fetch school statistics
+watch(
+  dashboardFilter,
+  async (filter, _, onCleanup) => {
+    let cancelled = false;
 
-async function loadSchools() {
-  loading.value = true;
-  errorMessage.value = "";
+    onCleanup(() => {
+      cancelled = true;
+    });
 
-  try {
-    // Get school names and total candidate count.
+    loading.value = true;
+    errorMessage.value = "";
 
-    const [schoolNames, candidatePage] = await Promise.all([
-      getCandidateSchools(),
-      getCandidates({
-        page: 0,
-        size: 1,
-      }),
-    ]);
+    try {
+      const result = await getTopPartners(filter, 50);
 
-    totalCandidates.value = candidatePage.totalElements;
+      if (cancelled) return;
 
-    const names = [
-      ...new Set(schoolNames.map((name) => name.trim()).filter(Boolean)),
-    ];
+      partners.value = result.partners ?? [];
+      totalCandidatesInTop.value = result.totalCandidatesInTop ?? 0;
+    } catch (error) {
+      if (cancelled) return;
 
-    const results: SchoolSummary[] = [];
-
-    // Fetch candidate counts in batches.
-
-    const batchSize = 4;
-
-    for (let i = 0; i < names.length; i += batchSize) {
-      const batch = names.slice(i, i + batchSize);
-
-      const batchResults = await Promise.all(
-        batch.map(async (school) => {
-          const result = await getCandidates({
-            truongHoc: school,
-            page: 0,
-            size: 1,
-          });
-
-          const count = result.totalElements;
-
-          return {
-            school,
-            count,
-            percentage:
-              totalCandidates.value > 0
-                ? (count / totalCandidates.value) * 100
-                : 0,
-          };
-        }),
-      );
-
-      results.push(...batchResults);
+      partners.value = [];
+      totalCandidatesInTop.value = 0;
+      errorMessage.value =
+        error instanceof Error
+          ? error.message
+          : "Không thể tải dữ liệu trường / đối tác.";
+    } finally {
+      if (!cancelled) loading.value = false;
     }
-
-    schools.value = results;
-  } catch (error) {
-    schools.value = [];
-    totalCandidates.value = 0;
-
-    errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : "Không thể tải thống kê trường học.";
-  } finally {
-    loading.value = false;
-  }
-}
-
-// Initial request
-
-onMounted(loadSchools);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
   <section class="min-w-0">
-    <!-- Loading state -->
-
-    <div
-      v-if="loading"
-      class="flex min-h-80 items-center justify-center rounded-xl border bg-card text-sm text-muted-foreground"
-    >
-      Đang tải thống kê trường học...
-    </div>
-
-    <!-- Error state -->
-
-    <div
-      v-else-if="errorMessage"
-      role="alert"
-      class="rounded-xl border bg-card p-6 text-sm text-destructive"
-    >
-      {{ errorMessage }}
-    </div>
-
-    <!-- School statistics -->
-
-    <SchoolFollowUpTable
-      v-else
-      :schools="schools"
-      :total-candidates="totalCandidates"
+    <TopPartnersTable
+      :partners="partners"
+      :total-candidates-in-top="totalCandidatesInTop"
+      :loading="loading"
+      :error="errorMessage"
     />
   </section>
 </template>

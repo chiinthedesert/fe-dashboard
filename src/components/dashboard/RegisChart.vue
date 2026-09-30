@@ -157,8 +157,8 @@ const dateTicks = computed(() => chartData.value.map((item) => item.date));
             :y="(d: Data) => d.registrations"
             :color="chartConfig.registrations.color"
             :rounded-corners="4"
-            :bar-padding="0.1"
-            :group-padding="0"
+            :bar-padding="0.28"
+            :group-padding="0.04"
           />
 
           <!-- X axis -->

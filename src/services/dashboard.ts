@@ -1,26 +1,24 @@
 import { apiRequest } from "@/services/api";
 
 import type {
+  DashboardAgeGroups,
+  DashboardDemographics,
   DashboardFilter,
   DashboardKpis,
+  DashboardProvincePerformance,
+  DashboardRevenueResponse,
+  DashboardTopPartnersResponse,
   RegistrationTrendResponse,
   ConversionFunnelResponse,
-  DashboardDemographics,
-  DashboardProvincePerformance,
-  DashboardAgeGroups,
 } from "@/types/dashboard-api";
 
 const BASE_PATH = "/api/v1/dashboard";
 
-// Dashboard filters
-
-function createFilterParams(
-  filter: DashboardFilter,
-): URLSearchParams {
+function createFilterParams(filter: DashboardFilter): URLSearchParams {
   const params = new URLSearchParams();
 
-  if (filter.contestId !== undefined) {
-    params.set("contestId", String(filter.contestId));
+  if (filter.contestId) {
+    params.set("contestId", filter.contestId);
   }
 
   if (filter.from) {
@@ -43,11 +41,8 @@ function createDashboardEndpoint(
   filter: DashboardFilter,
 ): string {
   const query = createFilterParams(filter).toString();
-
   return `${BASE_PATH}${path}${query ? `?${query}` : ""}`;
 }
-
-// Overview KPIs
 
 export async function getDashboardKpis(
   filter: DashboardFilter = {},
@@ -57,8 +52,6 @@ export async function getDashboardKpis(
   );
 }
 
-// Registration trend
-
 export async function getRegistrationTrend(
   filter: DashboardFilter = {},
 ): Promise<RegistrationTrendResponse> {
@@ -66,8 +59,6 @@ export async function getRegistrationTrend(
     createDashboardEndpoint("/registration-trend", filter),
   );
 }
-
-// Conversion funnel
 
 export async function getConversionFunnel(
   filter: DashboardFilter = {},
@@ -77,9 +68,6 @@ export async function getConversionFunnel(
   );
 }
 
-
-// Demographics
-
 export async function getDashboardDemographics(
   filter: DashboardFilter = {},
 ): Promise<DashboardDemographics> {
@@ -88,7 +76,6 @@ export async function getDashboardDemographics(
   );
 }
 
-// Province-level participation, with the shared dashboard filters
 export async function getProvinceParticipation(
   filter: DashboardFilter = {},
 ): Promise<DashboardProvincePerformance[]> {
@@ -97,7 +84,26 @@ export async function getProvinceParticipation(
   );
 }
 
-// Age-group counts: this endpoint does not accept dashboard date filters
 export async function getAgeGroups(): Promise<DashboardAgeGroups> {
   return apiRequest<DashboardAgeGroups>(`${BASE_PATH}/age-groups`);
+}
+
+export async function getDashboardRevenue(
+  filter: DashboardFilter = {},
+): Promise<DashboardRevenueResponse> {
+  return apiRequest<DashboardRevenueResponse>(
+    createDashboardEndpoint("/revenue", filter),
+  );
+}
+
+export async function getTopPartners(
+  filter: DashboardFilter = {},
+  limit = 50,
+): Promise<DashboardTopPartnersResponse> {
+  const params = createFilterParams(filter);
+  params.set("limit", String(limit));
+
+  return apiRequest<DashboardTopPartnersResponse>(
+    `${BASE_PATH}/top-partners?${params.toString()}`,
+  );
 }

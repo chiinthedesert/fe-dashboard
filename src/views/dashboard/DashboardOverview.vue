@@ -5,21 +5,22 @@ import type { Ref } from "vue";
 import OverviewCards from "@/components/dashboard/OverviewCards.vue";
 import RegisChart from "@/components/dashboard/RegisChart.vue";
 import ConversionChart from "@/components/dashboard/ConversionChart.vue";
+import RevenueChart from "@/components/dashboard/RevenueChart.vue";
 
 import {
-  getDashboardKpis,
-  getRegistrationTrend,
   getConversionFunnel,
+  getDashboardKpis,
+  getDashboardRevenue,
+  getRegistrationTrend,
 } from "@/services/dashboard";
 
 import type {
+  ConversionFunnelResponse,
   DashboardFilter,
   DashboardKpis,
+  DashboardRevenueResponse,
   RegistrationTrendResponse,
-  ConversionFunnelResponse,
 } from "@/types/dashboard-api";
-
-// Dashboard filter
 
 const dashboardFilter = inject<Ref<DashboardFilter>>("dashboardFilter");
 
@@ -27,23 +28,16 @@ if (!dashboardFilter) {
   throw new Error("Dashboard filter is unavailable.");
 }
 
-// Dashboard data
-
 const kpis = ref<DashboardKpis | null>(null);
-
 const registrationTrend = ref<RegistrationTrendResponse | null>(null);
-
 const conversionFunnel = ref<ConversionFunnelResponse | null>(null);
-
-// Request state
+const revenue = ref<DashboardRevenueResponse | null>(null);
 
 const loading = ref(false);
-
 const kpiError = ref("");
 const trendError = ref("");
 const funnelError = ref("");
-
-// Fetch dashboard data
+const revenueError = ref("");
 
 watch(
   dashboardFilter,
@@ -55,62 +49,63 @@ watch(
     });
 
     loading.value = true;
-
     kpiError.value = "";
     trendError.value = "";
     funnelError.value = "";
+    revenueError.value = "";
 
     try {
-      const [kpiResult, trendResult, funnelResult] = await Promise.allSettled([
-        getDashboardKpis(filter),
-        getRegistrationTrend(filter),
-        getConversionFunnel(filter),
-      ]);
+      const [kpiResult, trendResult, funnelResult, revenueResult] =
+        await Promise.allSettled([
+          getDashboardKpis(filter),
+          getRegistrationTrend(filter),
+          getConversionFunnel(filter),
+          getDashboardRevenue(filter),
+        ]);
 
       if (cancelled) return;
-
-      // Overview KPIs
 
       if (kpiResult.status === "fulfilled") {
         kpis.value = kpiResult.value;
       } else {
         kpis.value = null;
-
         kpiError.value =
           kpiResult.reason instanceof Error
             ? kpiResult.reason.message
             : "Không thể tải chỉ số tổng quan.";
       }
 
-      // Registration trend
-
       if (trendResult.status === "fulfilled") {
         registrationTrend.value = trendResult.value;
       } else {
         registrationTrend.value = null;
-
         trendError.value =
           trendResult.reason instanceof Error
             ? trendResult.reason.message
             : "Không thể tải xu hướng đăng ký.";
       }
 
-      // Conversion funnel
-
       if (funnelResult.status === "fulfilled") {
         conversionFunnel.value = funnelResult.value;
       } else {
         conversionFunnel.value = null;
-
         funnelError.value =
           funnelResult.reason instanceof Error
             ? funnelResult.reason.message
             : "Không thể tải phễu chuyển đổi.";
       }
-    } finally {
-      if (!cancelled) {
-        loading.value = false;
+
+      if (revenueResult.status === "fulfilled") {
+        revenue.value = revenueResult.value;
+      } else {
+        revenue.value = null;
+        revenueError.value =
+          revenueResult.reason instanceof Error
+            ? revenueResult.reason.message
+            : "Không thể tải dữ liệu doanh thu.";
       }
+    } finally {
+      if (!cancelled) loading.value = false;
     }
   },
   { immediate: true },
@@ -138,5 +133,9 @@ watch(
       :loading="loading"
       :error="funnelError"
     />
+  </section>
+
+  <section class="min-w-0">
+    <RevenueChart :data="revenue" :loading="loading" :error="revenueError" />
   </section>
 </template>
