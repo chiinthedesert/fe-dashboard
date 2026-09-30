@@ -26,9 +26,11 @@ import {
   Search,
 } from "lucide-vue-next";
 
+import type { DashboardTopPartnerItem } from "@/types/dashboard-api";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import {
   Card,
   CardContent,
@@ -36,14 +38,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
 import {
   Table,
   TableBody,
@@ -52,163 +52,125 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import TablePagination from "@/components/shared/TablePagination.vue";
 
-// Props
-
-interface SchoolRow {
-  school: string;
-  count: number;
-  percentage: number;
-}
-
 const props = defineProps<{
-  schools: SchoolRow[];
-  totalCandidates: number;
+  partners: DashboardTopPartnerItem[];
+  totalCandidatesInTop: number;
+  loading: boolean;
+  error: string;
 }>();
 
-// Formatters
+type PartnerRow = DashboardTopPartnerItem & { rank: number };
+
+const rows = computed<PartnerRow[]>(() =>
+  props.partners.map((partner, index) => ({
+    ...partner,
+    rank: index + 1,
+  })),
+);
 
 const numberFormatter = new Intl.NumberFormat("vi-VN");
-
-const percentageFormatter = new Intl.NumberFormat("vi-VN", {
-  maximumFractionDigits: 1,
-});
-
-function formatPercentage(value: number): string {
-  return `${percentageFormatter.format(value)}%`;
-}
-
-function isNumericColumn(id: string): boolean {
-  return ["count", "percentage"].includes(id);
-}
-
-// Table configuration
 
 const features = tableFeatures({
   columnFilteringFeature,
   columnVisibilityFeature,
   rowPaginationFeature,
   rowSortingFeature,
-
   filteredRowModel: createFilteredRowModel(),
   paginatedRowModel: createPaginatedRowModel(),
   sortedRowModel: createSortedRowModel(),
-
   filterFns: {
     includesString: filterFn_includesString,
   },
-
   sortFns: {
     text: sortFn_text,
     basic: sortFn_basic,
   },
 });
 
-const columnHelper = createColumnHelper<typeof features, SchoolRow>();
-
-// Table columns
+const columnHelper = createColumnHelper<typeof features, PartnerRow>();
 
 const columns = columnHelper.columns([
-  columnHelper.accessor("school", {
-    header: "Trường học",
+  columnHelper.accessor("rank", {
+    header: "Hạng",
+    sortFn: "basic",
+  }),
+  columnHelper.accessor("name", {
+    header: "Trường / Đối tác",
     enableHiding: false,
     filterFn: "includesString",
     sortFn: "text",
   }),
-
-  columnHelper.accessor("count", {
+  columnHelper.accessor("candidateCount", {
     header: "Số thí sinh",
     sortFn: "basic",
   }),
-
-  columnHelper.accessor("percentage", {
-    header: "Tỷ trọng",
-    sortFn: "basic",
+  columnHelper.accessor("status", {
+    header: "Trạng thái",
+    sortFn: "text",
   }),
 ]);
 
-// Table instance
-
 const table = useTable({
   features,
-
-  data: computed(() => props.schools),
-
+  data: rows,
   columns,
-
   initialState: {
-    sorting: [
-      {
-        id: "count",
-        desc: true,
-      },
-    ],
-
-    pagination: {
-      pageIndex: 0,
-      pageSize: 10,
-    },
+    sorting: [{ id: "candidateCount", desc: true }],
+    pagination: { pageIndex: 0, pageSize: 10 },
   },
 });
 
-// School search
-
-const schoolSearch = computed({
-  get: () => String(table.getColumn("school")?.getFilterValue() ?? ""),
-
+const partnerSearch = computed({
+  get: () => String(table.getColumn("name")?.getFilterValue() ?? ""),
   set: (value: string) => {
-    table.getColumn("school")?.setFilterValue(value);
-
+    table.getColumn("name")?.setFilterValue(value);
     table.setPageIndex(0);
   },
 });
-
-// Pagination
 
 function changePageSize(size: number) {
   table.setPageSize(size);
   table.setPageIndex(0);
 }
+
+function isCenteredColumn(id: string): boolean {
+  return id === "rank" || id === "candidateCount" || id === "status";
+}
 </script>
 
 <template>
   <Card class="min-w-0 w-full gap-4 py-4">
-    <!-- Table header -->
-
     <CardHeader class="px-4">
-      <CardTitle> Thống kê theo trường học </CardTitle>
-
+      <CardTitle>Top trường / đối tác</CardTitle>
       <CardDescription>
-        Số lượng thí sinh đăng ký theo từng trường học. Thống kê trên toàn bộ dữ
-        liệu, không áp dụng bộ lọc thời gian của dashboard.
+        Các trường hoặc đơn vị giới thiệu nhiều thí sinh nhất theo bộ lọc dashboard.
       </CardDescription>
+      <p v-if="!loading && !error" class="text-xs text-muted-foreground">
+        Tổng thí sinh trong danh sách top:
+        <span class="font-medium text-foreground tabular-nums">
+          {{ numberFormatter.format(totalCandidatesInTop) }}
+        </span>
+      </p>
     </CardHeader>
 
     <CardContent class="min-w-0 space-y-4 px-4">
-      <!-- Search and column visibility -->
-
       <div class="@container min-w-0">
         <div
           class="grid min-w-0 grid-cols-2 gap-3 @[36rem]:grid-cols-[minmax(12rem,20rem)_10rem] @[36rem]:justify-start"
         >
-          <!-- Search -->
-
           <div class="relative col-span-2 min-w-0 @[36rem]:col-span-1">
             <Search
               class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
-
             <Input
-              v-model="schoolSearch"
-              placeholder="Tìm trường học..."
-              aria-label="Tìm trường học"
+              v-model="partnerSearch"
+              placeholder="Tìm trường / đối tác..."
+              aria-label="Tìm trường hoặc đối tác"
               class="w-full min-w-0 truncate pr-3 pl-9 text-sm"
             />
           </div>
-
-          <!-- Column visibility -->
 
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
@@ -217,12 +179,10 @@ function changePageSize(size: number) {
                 variant="outline"
                 class="w-full min-w-0 justify-between gap-2 px-3 font-normal"
               >
-                <span class="min-w-0 truncate"> Hiển thị cột </span>
-
+                <span class="min-w-0 truncate">Hiển thị cột</span>
                 <ChevronDown class="size-4 shrink-0 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-
             <DropdownMenuContent
               align="start"
               :side-offset="4"
@@ -247,12 +207,8 @@ function changePageSize(size: number) {
         </div>
       </div>
 
-      <!-- School table -->
-
       <div class="min-w-0 max-w-full overflow-x-auto rounded-md border">
         <Table class="w-full">
-          <!-- Table header -->
-
           <TableHeader>
             <TableRow
               v-for="headerGroup in table.getHeaderGroups()"
@@ -262,11 +218,7 @@ function changePageSize(size: number) {
                 v-for="header in headerGroup.headers"
                 :key="header.id"
                 class="h-auto px-3 py-2 whitespace-normal"
-                :class="
-                  isNumericColumn(header.column.id)
-                    ? 'text-center'
-                    : 'text-left'
-                "
+                :class="isCenteredColumn(header.column.id) ? 'text-center' : 'text-left'"
                 :aria-sort="
                   header.column.getIsSorted() === 'asc'
                     ? 'ascending'
@@ -282,31 +234,33 @@ function changePageSize(size: number) {
                     size="sm"
                     class="h-auto min-h-8 w-full min-w-0 gap-1 px-1 whitespace-normal"
                     :class="
-                      isNumericColumn(header.column.id)
+                      isCenteredColumn(header.column.id)
                         ? 'justify-center'
                         : 'justify-start'
                     "
                     @click="header.column.toggleSorting()"
                   >
                     <span
-                      class="min-w-0 text-left leading-tight whitespace-normal"
+                      class="min-w-0 leading-tight whitespace-normal"
+                      :class="
+                        isCenteredColumn(header.column.id)
+                          ? 'text-center'
+                          : 'text-left'
+                      "
                     >
                       <FlexRender
                         :render="header.column.columnDef.header"
                         :props="header.getContext()"
                       />
                     </span>
-
                     <ArrowUp
                       v-if="header.column.getIsSorted() === 'asc'"
                       class="size-3.5 shrink-0"
                     />
-
                     <ArrowDown
                       v-else-if="header.column.getIsSorted() === 'desc'"
                       class="size-3.5 shrink-0"
                     />
-
                     <ArrowUpDown
                       v-else
                       class="size-3.5 shrink-0 text-muted-foreground"
@@ -317,85 +271,86 @@ function changePageSize(size: number) {
             </TableRow>
           </TableHeader>
 
-          <!-- Table body -->
-
           <TableBody>
-            <template v-if="table.getRowModel().rows.length">
+            <TableRow v-if="loading">
+              <TableCell
+                :colspan="table.getVisibleLeafColumns().length"
+                class="h-24 text-center text-muted-foreground"
+              >
+                Đang tải dữ liệu trường / đối tác...
+              </TableCell>
+            </TableRow>
+
+            <TableRow v-else-if="error">
+              <TableCell
+                :colspan="table.getVisibleLeafColumns().length"
+                class="h-24 text-center text-destructive"
+                role="alert"
+              >
+                {{ error }}
+              </TableCell>
+            </TableRow>
+
+            <template v-else-if="table.getRowModel().rows.length">
               <TableRow
                 v-for="row in table.getRowModel().rows"
-                :key="row.original.school"
+                :key="row.original.id"
               >
                 <TableCell
                   v-for="cell in row.getVisibleCells()"
                   :key="cell.id"
-                  class="px-3 py-3 tabular-nums"
-                  :class="
-                    isNumericColumn(cell.column.id)
-                      ? 'text-center'
-                      : 'text-left'
-                  "
+                  class="px-3 py-3"
+                  :class="isCenteredColumn(cell.column.id) ? 'text-center' : 'text-left'"
                 >
-                  <!-- School name -->
-
                   <span
-                    v-if="cell.column.id === 'school'"
+                    v-if="cell.column.id === 'name'"
                     class="font-medium whitespace-normal wrap-break-word"
                   >
-                    {{ row.original.school }}
+                    {{ row.original.name || "—" }}
                   </span>
-
-                  <!-- Candidate count -->
 
                   <span
-                    v-else-if="cell.column.id === 'count'"
-                    class="font-medium"
+                    v-else-if="cell.column.id === 'candidateCount'"
+                    class="font-medium tabular-nums"
                   >
-                    {{ numberFormatter.format(row.original.count) }}
+                    {{ numberFormatter.format(row.original.candidateCount) }}
                   </span>
 
-                  <!-- Percentage -->
+                  <Badge
+                    v-else-if="cell.column.id === 'status' && row.original.status"
+                    variant="outline"
+                  >
+                    {{ row.original.status }}
+                  </Badge>
 
-                  <span v-else-if="cell.column.id === 'percentage'">
-                    {{ formatPercentage(row.original.percentage) }}
+                  <span v-else class="text-muted-foreground tabular-nums">
+                    {{ cell.getValue() ?? "—" }}
                   </span>
                 </TableCell>
               </TableRow>
             </template>
-
-            <!-- Empty state -->
 
             <TableRow v-else>
               <TableCell
                 :colspan="table.getVisibleLeafColumns().length"
                 class="h-24 text-center text-muted-foreground"
               >
-                Không tìm thấy trường học.
+                Không có dữ liệu trường / đối tác.
               </TableCell>
             </TableRow>
           </TableBody>
         </Table>
       </div>
 
-      <!-- Pagination -->
-
       <TablePagination
         :page="table.atoms.pagination.get().pageIndex + 1"
         :page-count="Math.max(1, table.getPageCount())"
         :page-size="table.atoms.pagination.get().pageSize"
         :total="table.getFilteredRowModel().rows.length"
-        item-label="trường"
+        item-label="đơn vị"
         @update:page="table.setPageIndex($event - 1)"
         @update:page-size="changePageSize"
       />
-
-      <!-- Overall total -->
-
-      <p class="text-sm text-muted-foreground">
-        Tổng số thí sinh:
-        <span class="font-medium text-foreground tabular-nums">
-          {{ numberFormatter.format(totalCandidates) }}
-        </span>
-      </p>
     </CardContent>
   </Card>
 </template>

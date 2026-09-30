@@ -1,5 +1,5 @@
 export interface DashboardFilter {
-  contestId?: number;
+  contestId?: string;
   from?: string;
   to?: string;
   saleId?: number;
@@ -65,7 +65,6 @@ export interface ConversionFunnelResponse {
   stages: ConversionFunnelStage[];
 }
 
-
 export interface DashboardRegion {
   regionName: string;
   count: number;
@@ -84,7 +83,6 @@ export interface DashboardDemographics {
   educationLevels: DashboardEducationLevel[];
 }
 
-// Province-level participation statistics
 export interface DashboardProvincePerformance {
   province: string;
   region: string;
@@ -93,5 +91,26 @@ export interface DashboardProvincePerformance {
   conversionRate: number;
 }
 
-// Age-group counts are keyed by the labels returned by the backend.
 export type DashboardAgeGroups = Record<string, number>;
+
+export interface DashboardRevenueItem {
+  name: string;
+  doanh_thu: number;
+}
+
+export interface DashboardRevenueResponse {
+  tong_doanh_thu: number;
+  chi_tiet_theo_bang: DashboardRevenueItem[];
+}
+
+export interface DashboardTopPartnerItem {
+  id: number;
+  name: string;
+  candidateCount: number;
+  status: string;
+}
+
+export interface DashboardTopPartnersResponse {
+  totalCandidatesInTop: number;
+  partners: DashboardTopPartnerItem[];
+}

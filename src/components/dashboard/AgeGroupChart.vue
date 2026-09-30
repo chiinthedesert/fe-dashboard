@@ -85,7 +85,7 @@ function formatCount(value: number): string {
       <CardDescription> Số lượng thí sinh theo từng nhóm tuổi </CardDescription>
 
       <p class="text-xs text-muted-foreground">
-        Toàn bộ chương trình · Không áp dụng bộ lọc thời gian
+        Toàn bộ chương trình · Không áp dụng bộ lọc dashboard
       </p>
     </CardHeader>
 

@@ -19,17 +19,17 @@ import {
   Pencil,
   Plus,
   Search,
+  SlidersHorizontal,
   Trash2,
-  Upload,
 } from "lucide-vue-next";
 
 import type { CandidateResponse } from "@/types/candidate-api";
+import { candidateDivisions } from "@/types/candidate";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-
 import {
   Card,
   CardContent,
@@ -37,14 +37,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
 import {
   Select,
   SelectContent,
@@ -52,7 +50,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import {
   Table,
   TableBody,
@@ -61,16 +58,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import TablePagination from "@/components/shared/TablePagination.vue";
-
-// Props and events
 
 const props = defineProps<{
   candidates: CandidateResponse[];
 
   keyword: string;
   status: string;
+  board: string;
+  province: string;
+  source: string;
+  partner: string;
+
+  provinces: string[];
+  sources: string[];
+  partners: string[];
+  filtersLoading: boolean;
+  filtersError: string;
 
   page: number;
   pageSize: number;
@@ -83,36 +87,60 @@ const props = defineProps<{
   loading: boolean;
   error: string;
   exporting: boolean;
-  importing: boolean;
 }>();
 
 const emit = defineEmits<{
   "update:keyword": [value: string];
   "update:status": [value: string];
+  "update:board": [value: string];
+  "update:province": [value: string];
+  "update:source": [value: string];
+  "update:partner": [value: string];
 
   "update:page": [value: number];
   "update:page-size": [value: number];
 
   sort: [field: string];
+  "reset-filters": [];
 
   add: [];
   view: [candidate: CandidateResponse];
   edit: [candidate: CandidateResponse];
   delete: [candidate: CandidateResponse];
-
   "delete-selected": [ids: number[]];
-
-  "import-file": [];
   "export-file": [];
 }>();
 
-// Table features
+const filtersOpen = ref(false);
+
+const activeFilterCount = computed(
+  () =>
+    [props.status, props.board, props.province, props.source, props.partner].filter(
+      Boolean,
+    ).length,
+);
+
+const normalizedProvinces = computed(() =>
+  [...new Set(props.provinces.map((value) => value.trim()).filter(Boolean))].sort(
+    (a, b) => a.localeCompare(b, "vi"),
+  ),
+);
+
+const normalizedSources = computed(() =>
+  [...new Set(props.sources.map((value) => value.trim()).filter(Boolean))].sort(
+    (a, b) => a.localeCompare(b, "vi"),
+  ),
+);
+
+const normalizedPartners = computed(() =>
+  [...new Set(props.partners.map((value) => value.trim()).filter(Boolean))].sort(
+    (a, b) => a.localeCompare(b, "vi"),
+  ),
+);
 
 const features = tableFeatures({
   columnVisibilityFeature,
 });
-
-// Table columns
 
 const columnHelper = createColumnHelper<typeof features, CandidateResponse>();
 
@@ -122,40 +150,46 @@ const columns = columnHelper.columns([
     header: "",
     enableHiding: false,
   }),
-
   columnHelper.accessor("id", {
     header: "ID",
   }),
-
   columnHelper.accessor("hoTen", {
     header: "Họ và tên",
     enableHiding: false,
   }),
-
   columnHelper.accessor("email", {
     header: "Email",
   }),
-
   columnHelper.accessor("soDienThoai", {
     header: "Số điện thoại",
   }),
-
   columnHelper.accessor("truongHoc", {
     header: "Trường học",
   }),
-
   columnHelper.accessor("tinhThanh", {
     header: "Tỉnh / Thành phố",
   }),
-
   columnHelper.accessor("bangDau", {
     header: "Bảng đấu",
   }),
-
   columnHelper.accessor("trangThai", {
     header: "Trạng thái",
   }),
-
+  columnHelper.accessor("ngayDangKy", {
+    header: "Ngày đăng ký",
+  }),
+  columnHelper.accessor("nguonDangKy", {
+    header: "Nguồn đăng ký",
+  }),
+  columnHelper.accessor("doiTac", {
+    header: "Đối tác",
+  }),
+  columnHelper.accessor("assignedSaleName", {
+    header: "Sale phụ trách",
+  }),
+  columnHelper.accessor("soTien", {
+    header: "Số tiền",
+  }),
   columnHelper.display({
     id: "actions",
     header: "Thao tác",
@@ -163,65 +197,93 @@ const columns = columnHelper.columns([
   }),
 ]);
 
-// Table instance
-
 const table = useTable({
   features,
-
   data: computed(() => props.candidates),
-
   columns,
+  initialState: {
+    columnVisibility: {
+      nguonDangKy: false,
+      doiTac: false,
+      assignedSaleName: false,
+      soTien: false,
+    },
+  },
 });
 
-// Server-side sorting
-
-const sortableColumns = new Set(["id", "hoTen", "email", "truongHoc"]);
+const sortableColumns = new Set([
+  "id",
+  "hoTen",
+  "email",
+  "truongHoc",
+  "ngayDangKy",
+  "soTien",
+]);
 
 function isSortable(id: string): boolean {
   return sortableColumns.has(id);
 }
 
-// Row selection
+function boardVariant(
+  value: string | null | undefined,
+): "default" | "secondary" | "outline" {
+  const normalized = value?.trim().toLocaleLowerCase("vi") ?? "";
+
+  if (["bảng a", "table_a", "a"].includes(normalized)) return "default";
+  if (["bảng b", "table_b", "b"].includes(normalized)) return "secondary";
+  return "outline";
+}
+
+function statusVariant(
+  key: string | null | undefined,
+): "default" | "secondary" | "outline" | "destructive" {
+  if (key === "DA_DONG_PHI") return "default";
+  if (key === "CHO_HO_SO") return "outline";
+  if (key === "CHUA_DONG_PHI") return "destructive";
+  return "secondary";
+}
+
+function sourceLabel(value: string | null | undefined): string {
+  if (value === "DATA") return "Data";
+  if (value === "GGFORM") return "Google Form";
+  if (value === "FBADS") return "Facebook Ads";
+  return value || "—";
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("vi-VN");
+}
+
+function formatMoney(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  return `${value.toLocaleString("vi-VN")} ₫`;
+}
 
 const selectedIds = ref<Set<number>>(new Set());
-
 const selectedCount = computed(() => selectedIds.value.size);
-
 const currentPageIds = computed(() =>
   table.getRowModel().rows.map((row) => row.original.id),
 );
 
 const pageSelection = computed<boolean | "indeterminate">(() => {
   const ids = currentPageIds.value;
-
-  if (ids.length === 0) {
-    return false;
-  }
+  if (ids.length === 0) return false;
 
   const selectedOnPage = ids.filter((id) => selectedIds.value.has(id)).length;
-
-  if (selectedOnPage === 0) {
-    return false;
-  }
-
-  if (selectedOnPage === ids.length) {
-    return true;
-  }
-
+  if (selectedOnPage === 0) return false;
+  if (selectedOnPage === ids.length) return true;
   return "indeterminate";
 });
 
-// Selection actions
-
 function toggleCandidate(id: number, checked: boolean) {
   const next = new Set(selectedIds.value);
-
-  if (checked) {
-    next.add(id);
-  } else {
-    next.delete(id);
-  }
-
+  if (checked) next.add(id);
+  else next.delete(id);
   selectedIds.value = next;
 }
 
@@ -229,11 +291,8 @@ function toggleCurrentPage(checked: boolean) {
   const next = new Set(selectedIds.value);
 
   for (const id of currentPageIds.value) {
-    if (checked) {
-      next.add(id);
-    } else {
-      next.delete(id);
-    }
+    if (checked) next.add(id);
+    else next.delete(id);
   }
 
   selectedIds.value = next;
@@ -243,32 +302,27 @@ function clearSelection() {
   selectedIds.value = new Set();
 }
 
-defineExpose({
-  clearSelection,
-});
-
-// Reset selection when the displayed dataset changes
+defineExpose({ clearSelection });
 
 watch(
   [
     () => props.page,
     () => props.keyword,
     () => props.status,
+    () => props.board,
+    () => props.province,
+    () => props.source,
+    () => props.partner,
     () => props.sortBy,
     () => props.sortDir,
   ],
-  () => {
-    clearSelection();
-  },
+  clearSelection,
 );
-
-// Remove selected IDs that are no longer displayed
 
 watch(
   () => props.candidates.map((candidate) => candidate.id),
   (ids) => {
     const existingIds = new Set(ids);
-
     selectedIds.value = new Set(
       [...selectedIds.value].filter((id) => existingIds.has(id)),
     );
@@ -278,68 +332,51 @@ watch(
 
 <template>
   <Card class="min-w-0 w-full gap-4 py-4">
-    <!-- Card header -->
-
     <CardHeader class="px-4">
-      <CardTitle> Bảng dữ liệu thí sinh tập trung </CardTitle>
-
+      <CardTitle>Bảng dữ liệu thí sinh tập trung</CardTitle>
       <CardDescription>
         Quản lý toàn bộ hồ sơ thí sinh dự thi Python Master.
       </CardDescription>
     </CardHeader>
 
     <CardContent class="min-w-0 space-y-4 px-4">
-      <!-- Search, filter and actions -->
-
       <div class="@container min-w-0">
         <div
-          class="grid min-w-0 grid-cols-2 gap-3 @[36rem]:grid-cols-3 @[64rem]:grid-cols-[minmax(12rem,1fr)_11rem_10rem_auto_auto_auto] @[64rem]:items-center"
+          class="grid min-w-0 grid-cols-2 gap-3 @[40rem]:grid-cols-3 @[64rem]:grid-cols-[minmax(14rem,1fr)_auto_10rem_auto_auto] @[64rem]:items-center"
         >
-          <!-- Search -->
-
-          <div class="relative min-w-0">
+          <div class="relative col-span-2 min-w-0 @[64rem]:col-span-1">
             <Search
               class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
-
             <Input
               :model-value="keyword"
-              placeholder="Tìm ID, tên, SĐT, email, trường..."
+              placeholder="Tìm tên, SĐT, email, trường..."
               aria-label="Tìm kiếm thí sinh"
               class="w-full min-w-0 truncate pr-3 pl-9 text-sm"
               @update:model-value="emit('update:keyword', String($event ?? ''))"
             />
           </div>
 
-          <!-- Status filter -->
-
-          <Select
-            :model-value="status || 'all'"
-            @update:model-value="
-              (value) =>
-                emit(
-                  'update:status',
-                  value === 'all' ? '' : String(value ?? ''),
-                )
-            "
+          <Button
+            type="button"
+            variant="outline"
+            class="w-full min-w-0 justify-between gap-2 @[64rem]:w-auto"
+            :aria-expanded="filtersOpen"
+            aria-controls="candidate-filters"
+            @click="filtersOpen = !filtersOpen"
           >
-            <SelectTrigger
-              class="w-full min-w-0"
-              aria-label="Lọc theo trạng thái thí sinh"
-            >
-              <SelectValue placeholder="Trạng thái" />
-            </SelectTrigger>
-
-            <SelectContent>
-              <SelectItem value="all"> Tất cả trạng thái </SelectItem>
-
-              <SelectItem value="CHO_HO_SO"> Chờ hồ sơ </SelectItem>
-
-              <SelectItem value="DA_DONG_PHI"> Đã đóng học phí </SelectItem>
-            </SelectContent>
-          </Select>
-
-          <!-- Column visibility -->
+            <span class="flex min-w-0 items-center gap-2">
+              <SlidersHorizontal class="size-4 shrink-0" />
+              <span class="truncate">Bộ lọc</span>
+              <Badge v-if="activeFilterCount" variant="secondary">
+                {{ activeFilterCount }}
+              </Badge>
+            </span>
+            <ChevronDown
+              class="size-4 shrink-0 transition-transform"
+              :class="{ 'rotate-180': filtersOpen }"
+            />
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
@@ -348,8 +385,7 @@ watch(
                 variant="outline"
                 class="w-full min-w-0 justify-between gap-2 px-3 font-normal"
               >
-                <span class="min-w-0 truncate text-left"> Hiển thị cột </span>
-
+                <span class="min-w-0 truncate text-left">Hiển thị cột</span>
                 <ChevronDown class="size-4 shrink-0 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
@@ -376,45 +412,28 @@ watch(
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <!-- Add candidate -->
-
           <Button
             type="button"
             class="w-full min-w-0 gap-2 @[64rem]:w-auto"
             @click="emit('add')"
           >
             <Plus class="size-4 shrink-0" />
-
-            <span class="min-w-0 truncate"> Thêm thí sinh </span>
+            <span class="min-w-0 truncate">Thêm thí sinh</span>
           </Button>
-
-          <!-- Import file -->
 
           <Button
             type="button"
             variant="outline"
-            :disabled="importing || loading"
-            class="w-full min-w-0 gap-2 @[64rem]:w-auto"
-            @click="emit('import-file')"
-          >
-            <Upload class="size-4 shrink-0" />
-
-            <span class="min-w-0 truncate">
-              {{ importing ? "Đang nhập..." : "Nhập file" }}
-            </span>
-          </Button>
-
-          <!-- Export candidates -->
-
-          <Button
-            type="button"
-            variant="outline"
-            :disabled="exporting || loading"
+            :disabled="exporting || loading || !!board"
+            :title="
+              board
+                ? 'Xuất Excel chưa hỗ trợ bộ lọc Bảng đấu vì API chưa có tham số này.'
+                : undefined
+            "
             class="w-full min-w-0 gap-2 @[64rem]:w-auto"
             @click="emit('export-file')"
           >
             <Download class="size-4 shrink-0" />
-
             <span class="min-w-0 truncate">
               {{ exporting ? "Đang xuất..." : "Xuất file" }}
             </span>
@@ -422,7 +441,152 @@ watch(
         </div>
       </div>
 
-      <!-- Selection actions -->
+      <div
+        id="candidate-filters"
+        v-show="filtersOpen"
+        class="grid min-w-0 grid-cols-1 gap-3 rounded-md border bg-muted/30 p-3 sm:grid-cols-2 lg:grid-cols-5"
+      >
+        <Select
+          :model-value="status || 'all'"
+          @update:model-value="
+            (value) =>
+              emit(
+                'update:status',
+                value === 'all' ? '' : String(value ?? ''),
+              )
+          "
+        >
+          <SelectTrigger class="w-full min-w-0" aria-label="Lọc theo trạng thái">
+            <SelectValue placeholder="Trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="DA_DONG_PHI">Đã đóng phí</SelectItem>
+            <SelectItem value="CHO_HO_SO">Chờ hồ sơ</SelectItem>
+            <SelectItem value="CHUA_DONG_PHI">Chưa đóng phí</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          :model-value="board || 'all'"
+          @update:model-value="
+            (value) =>
+              emit('update:board', value === 'all' ? '' : String(value ?? ''))
+          "
+        >
+          <SelectTrigger class="w-full min-w-0" aria-label="Lọc theo bảng đấu">
+            <SelectValue placeholder="Bảng đấu" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả bảng đấu</SelectItem>
+            <SelectItem
+              v-for="division in candidateDivisions"
+              :key="division"
+              :value="division"
+            >
+              {{ division }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          :model-value="province || 'all'"
+          :disabled="filtersLoading"
+          @update:model-value="
+            (value) =>
+              emit(
+                'update:province',
+                value === 'all' ? '' : String(value ?? ''),
+              )
+          "
+        >
+          <SelectTrigger class="w-full min-w-0" aria-label="Lọc theo tỉnh thành">
+            <SelectValue placeholder="Tỉnh / Thành phố" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả tỉnh / thành</SelectItem>
+            <SelectItem
+              v-for="item in normalizedProvinces"
+              :key="item"
+              :value="item"
+            >
+              {{ item }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          :model-value="source || 'all'"
+          :disabled="filtersLoading"
+          @update:model-value="
+            (value) =>
+              emit('update:source', value === 'all' ? '' : String(value ?? ''))
+          "
+        >
+          <SelectTrigger class="w-full min-w-0" aria-label="Lọc theo nguồn đăng ký">
+            <SelectValue placeholder="Nguồn đăng ký" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả nguồn</SelectItem>
+            <SelectItem
+              v-for="item in normalizedSources"
+              :key="item"
+              :value="item"
+            >
+              {{ sourceLabel(item) }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          :model-value="partner || 'all'"
+          :disabled="filtersLoading"
+          @update:model-value="
+            (value) =>
+              emit(
+                'update:partner',
+                value === 'all' ? '' : String(value ?? ''),
+              )
+          "
+        >
+          <SelectTrigger class="w-full min-w-0" aria-label="Lọc theo đối tác">
+            <SelectValue placeholder="Đối tác" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả đối tác</SelectItem>
+            <SelectItem
+              v-for="item in normalizedPartners"
+              :key="item"
+              :value="item"
+            >
+              {{ item }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div class="flex items-center sm:col-span-2 lg:col-span-5">
+          <Button
+            v-if="activeFilterCount"
+            type="button"
+            variant="ghost"
+            size="sm"
+            @click="emit('reset-filters')"
+          >
+            Xóa bộ lọc
+          </Button>
+
+          <p
+            v-if="board"
+            class="ml-auto text-xs text-muted-foreground"
+          >
+            Bảng đấu được lọc ở frontend vì API chưa có tham số tương ứng; bỏ lọc này để xuất Excel.
+          </p>
+        </div>
+      </div>
+
+      <p v-if="filtersError" role="alert" class="text-sm text-destructive">
+        {{ filtersError }}
+      </p>
 
       <div
         v-if="selectedCount > 0"
@@ -430,22 +594,14 @@ watch(
       >
         <p class="text-sm" role="status">
           Đã chọn
-          <span class="font-medium">
-            {{ selectedCount }}
-          </span>
+          <span class="font-medium">{{ selectedCount }}</span>
           thí sinh
         </p>
 
         <div class="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            @click="clearSelection"
-          >
+          <Button type="button" variant="ghost" size="sm" @click="clearSelection">
             Bỏ chọn
           </Button>
-
           <Button
             type="button"
             variant="destructive"
@@ -459,12 +615,8 @@ watch(
         </div>
       </div>
 
-      <!-- Responsive table -->
-
       <div class="min-w-0 max-w-full overflow-x-auto rounded-md border">
         <Table class="w-full">
-          <!-- Table header -->
-
           <TableHeader>
             <TableRow
               v-for="headerGroup in table.getHeaderGroups()"
@@ -489,8 +641,6 @@ watch(
                 "
               >
                 <template v-if="!header.isPlaceholder">
-                  <!-- Select current page -->
-
                   <Checkbox
                     v-if="header.column.id === 'selection'"
                     :model-value="pageSelection"
@@ -500,8 +650,6 @@ watch(
                       (value) => toggleCurrentPage(value === true)
                     "
                   />
-
-                  <!-- Server-side sortable header -->
 
                   <div
                     v-else-if="isSortable(header.column.id)"
@@ -514,9 +662,7 @@ watch(
                       class="h-auto min-h-8 w-full min-w-0 justify-start gap-1 px-1 whitespace-normal"
                       @click="emit('sort', header.column.id)"
                     >
-                      <span
-                        class="min-w-0 text-left leading-tight whitespace-normal"
-                      >
+                      <span class="min-w-0 text-left leading-tight whitespace-normal">
                         <FlexRender
                           :render="header.column.columnDef.header"
                           :props="header.getContext()"
@@ -527,22 +673,18 @@ watch(
                         v-if="sortBy === header.column.id && sortDir === 'asc'"
                         class="size-3.5 shrink-0"
                       />
-
                       <ArrowDown
                         v-else-if="
                           sortBy === header.column.id && sortDir === 'desc'
                         "
                         class="size-3.5 shrink-0"
                       />
-
                       <ArrowUpDown
                         v-else
                         class="size-3.5 shrink-0 text-muted-foreground"
                       />
                     </Button>
                   </div>
-
-                  <!-- Non-sortable header -->
 
                   <FlexRender
                     v-else
@@ -554,11 +696,7 @@ watch(
             </TableRow>
           </TableHeader>
 
-          <!-- Table body -->
-
           <TableBody>
-            <!-- Loading state -->
-
             <TableRow v-if="loading">
               <TableCell
                 :colspan="table.getVisibleLeafColumns().length"
@@ -567,8 +705,6 @@ watch(
                 Đang tải danh sách thí sinh...
               </TableCell>
             </TableRow>
-
-            <!-- API error -->
 
             <TableRow v-else-if="error">
               <TableCell
@@ -579,8 +715,6 @@ watch(
                 {{ error }}
               </TableCell>
             </TableRow>
-
-            <!-- Candidate rows -->
 
             <template v-else-if="table.getRowModel().rows.length">
               <TableRow
@@ -595,8 +729,6 @@ watch(
                   :key="cell.id"
                   class="px-3 py-3 whitespace-normal"
                 >
-                  <!-- Selection -->
-
                   <Checkbox
                     v-if="cell.column.id === 'selection'"
                     :model-value="selectedIds.has(row.original.id)"
@@ -607,8 +739,6 @@ watch(
                     "
                   />
 
-                  <!-- Candidate name -->
-
                   <span
                     v-else-if="cell.column.id === 'hoTen'"
                     class="font-medium"
@@ -616,69 +746,54 @@ watch(
                     {{ row.original.hoTen || "—" }}
                   </span>
 
-                  <!-- School -->
-
-                  <span v-else-if="cell.column.id === 'truongHoc'">
-                    {{ row.original.truongHoc || "—" }}
-                  </span>
-
-                  <!-- Province -->
-
-                  <span v-else-if="cell.column.id === 'tinhThanh'">
-                    {{ row.original.tinhThanh || "—" }}
-                  </span>
-
-                  <!-- Exam board -->
-
                   <Badge
                     v-else-if="cell.column.id === 'bangDau'"
-                    :variant="
-                      ['Bảng A', 'TABLE_A', 'A'].includes(
-                        row.original.bangDau ?? '',
-                      )
-                        ? 'outline'
-                        : 'outline'
-                    "
-                    class="whitespace-nowrap"
+                    :variant="boardVariant(row.original.bangDau)"
                   >
                     {{ row.original.bangDau || "—" }}
                   </Badge>
 
-                  <!-- Candidate status -->
-
                   <Badge
                     v-else-if="cell.column.id === 'trangThai'"
-                    :variant="
-                      row.original.trangThaiKey === 'DA_DONG_PHI'
-                        ? 'default'
-                        : 'outline'
-                    "
-                    class="whitespace-nowrap"
+                    :variant="statusVariant(row.original.trangThaiKey)"
                   >
                     {{ row.original.trangThai || "—" }}
                   </Badge>
 
-                  <!-- Actions -->
+                  <span
+                    v-else-if="cell.column.id === 'nguonDangKy'"
+                    class="text-muted-foreground"
+                  >
+                    {{ sourceLabel(row.original.nguonDangKy) }}
+                  </span>
+
+                  <span
+                    v-else-if="cell.column.id === 'ngayDangKy'"
+                    class="whitespace-nowrap text-muted-foreground tabular-nums"
+                  >
+                    {{ formatDateTime(row.original.ngayDangKy) }}
+                  </span>
+
+                  <span
+                    v-else-if="cell.column.id === 'soTien'"
+                    class="whitespace-nowrap text-muted-foreground tabular-nums"
+                  >
+                    {{ formatMoney(row.original.soTien) }}
+                  </span>
 
                   <div
                     v-else-if="cell.column.id === 'actions'"
                     class="flex items-center justify-center gap-1"
                   >
-                    <!-- View candidate -->
-
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      disabled
                       :aria-label="`Xem ${row.original.hoTen ?? 'thí sinh'}`"
                       @click="emit('view', row.original)"
                     >
                       <Eye class="size-4" />
                     </Button>
-
-                    <!-- Edit candidate -->
-
                     <Button
                       type="button"
                       variant="ghost"
@@ -688,9 +803,6 @@ watch(
                     >
                       <Pencil class="size-4" />
                     </Button>
-
-                    <!-- Delete candidate -->
-
                     <Button
                       type="button"
                       variant="ghost"
@@ -702,8 +814,6 @@ watch(
                       <Trash2 class="size-4" />
                     </Button>
                   </div>
-
-                  <!-- Other columns -->
 
                   <span
                     v-else
@@ -720,8 +830,6 @@ watch(
               </TableRow>
             </template>
 
-            <!-- Empty state -->
-
             <TableRow v-else>
               <TableCell
                 :colspan="table.getVisibleLeafColumns().length"
@@ -733,8 +841,6 @@ watch(
           </TableBody>
         </Table>
       </div>
-
-      <!-- Server-side pagination -->
 
       <TablePagination
         :page="page"

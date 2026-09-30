@@ -12,6 +12,9 @@ export interface CandidateResponse {
   diaChi?: string | null;
   ngaySinh?: string | null;
 
+  assignedSaleId?: number | null;
+  assignedSaleName?: string | null;
+
   bangDau?: string | null;
 
   trangThai?: string | null;
@@ -22,7 +25,11 @@ export interface CandidateResponse {
   soTien?: number | null;
 
   ngayDangKy?: string | null;
+  nguonDangKy?: string | null;
+  doiTac?: string | null;
+
   createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface CandidatePage {
@@ -41,13 +48,24 @@ export interface CandidatePage {
 export interface CandidateFilter {
   keyword?: string;
   truongHoc?: string;
+  tinhThanh?: string;
   trangThai?: string;
+  nguonDangKy?: string;
+  doiTac?: string;
 
   page?: number;
   size?: number;
 
   sortBy?: string;
   sortDir?: "asc" | "desc";
+}
+
+export interface StaffOptionResponse {
+  id: number;
+  idNhanVien?: string | null;
+  hoTen?: string | null;
+  email?: string | null;
+  soDienThoai?: string | null;
 }
 
 export interface CreateCandidateRequest {
@@ -61,10 +79,12 @@ export interface CreateCandidateRequest {
   truongHoc?: string;
   tinhThanh?: string;
   diaChi?: string;
+  assignedSaleId?: number;
   bangDau?: string;
 
   trangThaiHoSo?: string;
   paymentStatus?: string;
+  doiTac?: string;
   soTien?: number;
 }
 

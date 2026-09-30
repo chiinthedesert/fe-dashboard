@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import { ChevronDown } from "lucide-vue-next";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import {
   Select,
   SelectContent,
@@ -14,11 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { getCandidateSales } from "@/services/candidates";
 import { getLastDaysRange } from "@/lib/dashboard-date";
 
+import type { StaffOptionResponse } from "@/types/candidate-api";
 import type { DashboardFilter } from "@/types/dashboard-api";
-
-// Props and events
 
 const props = defineProps<{
   modelValue: DashboardFilter;
@@ -28,83 +27,97 @@ const emit = defineEmits<{
   "update:modelValue": [value: DashboardFilter];
 }>();
 
-// Filter state
-
 const filtersOpen = ref(false);
-
 const customEditorOpen = ref(false);
-
 const customFrom = ref(props.modelValue.from ?? "");
 const customTo = ref(props.modelValue.to ?? "");
 
-// Period selection
+const sales = ref<StaffOptionResponse[]>([]);
+const salesLoading = ref(false);
+const salesError = ref("");
+
+onMounted(async () => {
+  salesLoading.value = true;
+  salesError.value = "";
+
+  try {
+    sales.value = await getCandidateSales();
+  } catch (error) {
+    salesError.value =
+      error instanceof Error
+        ? error.message
+        : "Không thể tải danh sách nhân viên Sale.";
+  } finally {
+    salesLoading.value = false;
+  }
+});
+
+const sortedSales = computed(() =>
+  [...sales.value].sort((a, b) =>
+    (a.hoTen ?? "").localeCompare(b.hoTen ?? "", "vi"),
+  ),
+);
 
 const period = computed(() => {
-  if (customEditorOpen.value) {
-    return "custom";
-  }
+  if (customEditorOpen.value) return "custom";
 
   const { from, to } = props.modelValue;
 
-  if (!from && !to) {
-    return "all";
-  }
+  if (!from && !to) return "all";
 
   if (from && to) {
     const last7Days = getLastDaysRange(7);
     const last30Days = getLastDaysRange(30);
 
-    if (from === last7Days.from && to === last7Days.to) {
-      return "7d";
-    }
-
-    if (from === last30Days.from && to === last30Days.to) {
-      return "30d";
-    }
+    if (from === last7Days.from && to === last7Days.to) return "7d";
+    if (from === last30Days.from && to === last30Days.to) return "30d";
   }
 
   return "custom";
 });
 
+function emitFilter(next: DashboardFilter) {
+  emit("update:modelValue", next);
+}
+
+function changeSale(value: string) {
+  const next = { ...props.modelValue };
+
+  if (value === "all") delete next.saleId;
+  else next.saleId = Number(value);
+
+  emitFilter(next);
+}
+
 function changePeriod(value: string) {
   if (value === "custom") {
     customEditorOpen.value = true;
-
     customFrom.value = props.modelValue.from ?? "";
     customTo.value = props.modelValue.to ?? "";
-
     return;
   }
 
   customEditorOpen.value = false;
 
+  const next = { ...props.modelValue };
+  delete next.from;
+  delete next.to;
+
   if (value === "7d") {
-    emit("update:modelValue", getLastDaysRange(7));
-    return;
+    Object.assign(next, getLastDaysRange(7));
+  } else if (value === "30d") {
+    Object.assign(next, getLastDaysRange(30));
   }
 
-  if (value === "30d") {
-    emit("update:modelValue", getLastDaysRange(30));
-    return;
-  }
-
-  if (value === "all") {
-    emit("update:modelValue", {});
-  }
+  emitFilter(next);
 }
 
-// Custom date range
-
 function applyCustomRange() {
-  if (!customFrom.value || !customTo.value) {
-    return;
-  }
+  if (!customFrom.value || !customTo.value) return;
+  if (customFrom.value > customTo.value) return;
 
-  if (customFrom.value > customTo.value) {
-    return;
-  }
-
-  emit("update:modelValue", {
+  emitFilter({
+    ...props.modelValue,
     from: customFrom.value,
     to: customTo.value,
   });
@@ -117,8 +130,6 @@ function applyCustomRange() {
   <div
     class="flex flex-col gap-3 rounded-xl border bg-card p-2 sm:flex-row sm:items-start sm:p-4"
   >
-    <!-- Mobile filter toggle -->
-
     <Button
       type="button"
       variant="ghost"
@@ -128,7 +139,6 @@ function applyCustomRange() {
       @click="filtersOpen = !filtersOpen"
     >
       Bộ lọc
-
       <ChevronDown
         class="size-4 transition-transform"
         :class="{ 'rotate-180': filtersOpen }"
@@ -141,43 +151,33 @@ function applyCustomRange() {
       Bộ lọc
     </span>
 
-    <!-- Filter controls -->
-
     <div
       id="dashboard-filters"
-      class="w-full min-w-0 grid-cols-1 gap-x-4 gap-y-3 sm:grid sm:w-auto sm:grid-cols-[repeat(2,12rem)] lg:grid-cols-[repeat(3,12rem)]"
+      class="w-full min-w-0 grid-cols-1 gap-x-4 gap-y-3 sm:grid sm:w-auto sm:grid-cols-[repeat(2,12rem)]"
       :class="filtersOpen ? 'grid' : 'hidden'"
     >
-      <!-- Region -->
-
-      <Select model-value="all" disabled>
-        <SelectTrigger class="w-full" aria-label="Khu vực">
-          <SelectValue placeholder="Chọn khu vực" />
+      <Select
+        :model-value="modelValue.saleId != null ? String(modelValue.saleId) : 'all'"
+        :disabled="salesLoading || !!salesError"
+        @update:model-value="(value) => changeSale(String(value ?? 'all'))"
+      >
+        <SelectTrigger class="w-full" aria-label="Nhân viên Sale">
+          <SelectValue
+            :placeholder="salesLoading ? 'Đang tải Sale...' : 'Nhân viên Sale'"
+          />
         </SelectTrigger>
 
         <SelectContent>
-          <SelectItem value="all">Toàn quốc</SelectItem>
-          <SelectItem value="north">Miền Bắc</SelectItem>
-          <SelectItem value="central">Miền Trung</SelectItem>
-          <SelectItem value="south">Miền Nam</SelectItem>
+          <SelectItem value="all">Tất cả Sale</SelectItem>
+          <SelectItem
+            v-for="sale in sortedSales"
+            :key="sale.id"
+            :value="String(sale.id)"
+          >
+            {{ sale.hoTen || sale.idNhanVien || `Sale #${sale.id}` }}
+          </SelectItem>
         </SelectContent>
       </Select>
-
-      <!-- Exam board -->
-
-      <Select model-value="all" disabled>
-        <SelectTrigger class="w-full" aria-label="Bảng thi">
-          <SelectValue placeholder="Chọn bảng thi" />
-        </SelectTrigger>
-
-        <SelectContent>
-          <SelectItem value="all">Tất cả bảng thi</SelectItem>
-          <SelectItem value="A">Bảng A</SelectItem>
-          <SelectItem value="B">Bảng B</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <!-- Time range -->
 
       <Select
         :model-value="period"
@@ -195,17 +195,22 @@ function applyCustomRange() {
         </SelectContent>
       </Select>
 
-      <!-- Custom date range -->
+      <p
+        v-if="salesError"
+        role="alert"
+        class="text-xs text-destructive sm:col-span-2"
+      >
+        {{ salesError }}
+      </p>
 
       <div
         v-if="period === 'custom'"
-        class="grid min-w-0 grid-cols-1 gap-3 sm:col-span-2 sm:grid-cols-2 lg:col-span-3"
+        class="grid min-w-0 grid-cols-1 gap-3 sm:col-span-2 sm:grid-cols-2"
       >
         <div class="grid min-w-0 gap-2">
           <label for="dashboard-from" class="text-sm font-medium">
             Từ ngày
           </label>
-
           <Input
             id="dashboard-from"
             v-model="customFrom"
@@ -219,7 +224,6 @@ function applyCustomRange() {
           <label for="dashboard-to" class="text-sm font-medium">
             Đến ngày
           </label>
-
           <Input
             id="dashboard-to"
             v-model="customTo"

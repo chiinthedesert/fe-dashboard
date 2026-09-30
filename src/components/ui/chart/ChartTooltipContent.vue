@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from "vue";
 import type { ChartConfig } from ".";
+
 import { computed } from "vue";
+
 import { cn } from "@/lib/utils";
 
 const props = withDefaults(
@@ -9,45 +11,67 @@ const props = withDefaults(
     hideLabel?: boolean;
     hideIndicator?: boolean;
     indicator?: "line" | "dot" | "dashed";
+
+    itemLayout?: "inline" | "stacked";
+
     nameKey?: string;
     labelKey?: string;
+
     labelFormatter?: (d: number | Date) => string;
+
+    valueFormatter?: (value: unknown, key: string) => string;
+
     payload?: Record<string, any>;
     config?: ChartConfig;
+
     class?: HTMLAttributes["class"];
     color?: string;
+
     x?: number | Date;
   }>(),
   {
     payload: () => ({}),
     config: () => ({}),
+
     indicator: "dot",
+    itemLayout: "inline",
   },
 );
 
-// TODO: currently we use `createElement` and `render` to render the
-// const chartContext = useChart(null)
+// Tooltip items
 
 const payload = computed(() => {
   return Object.entries(props.payload)
     .map(([key, value]) => {
-      // const key = `${props.nameKey || item.name || item.dataKey || "value"}`
       const itemConfig = props.config[key];
+
       const indicatorColor = props.config[key]?.color ?? props.payload.fill;
 
-      return { key, value, itemConfig, indicatorColor };
+      return {
+        key,
+        value,
+        itemConfig,
+        indicatorColor,
+      };
     })
-    .filter((i) => i.itemConfig);
+    .filter((item) => item.itemConfig);
 });
+
+// Tooltip label
 
 const nestLabel = computed(
   () => Object.keys(props.payload).length === 1 && props.indicator !== "dot",
 );
+
 const tooltipLabel = computed(() => {
-  if (props.hideLabel) return null;
+  if (props.hideLabel) {
+    return null;
+  }
+
   if (props.labelFormatter && props.x !== undefined) {
     return props.labelFormatter(props.x);
   }
+
   return props.labelKey
     ? props.config[props.labelKey]?.label || props.payload[props.labelKey]
     : props.x;
@@ -64,9 +88,14 @@ const tooltipLabel = computed(() => {
     "
   >
     <slot>
+      <!-- Tooltip title -->
+
       <div v-if="!nestLabel && tooltipLabel" class="font-medium">
         {{ tooltipLabel }}
       </div>
+
+      <!-- Tooltip values -->
+
       <div class="grid gap-1.5">
         <div
           v-for="{ value, itemConfig, indicatorColor, key } in payload"
@@ -74,21 +103,31 @@ const tooltipLabel = computed(() => {
           :class="
             cn(
               '[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5',
+
               indicator === 'dot' && 'items-center',
             )
           "
         >
+          <!-- Config icon -->
+
           <component :is="itemConfig.icon" v-if="itemConfig?.icon" />
+
+          <!-- Indicator -->
+
           <template v-else-if="!hideIndicator">
             <div
               :class="
                 cn(
                   'shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)',
+
                   {
                     'h-2.5 w-2.5': indicator === 'dot',
+
                     'w-1': indicator === 'line',
+
                     'w-0 border-[1.5px] border-dashed bg-transparent':
                       indicator === 'dashed',
+
                     'my-0.5': nestLabel && indicator === 'dashed',
                   },
                 )
@@ -100,27 +139,45 @@ const tooltipLabel = computed(() => {
             />
           </template>
 
+          <!-- Label and value -->
+
           <div
             :class="
               cn(
-                'flex flex-1 justify-between leading-none',
-                nestLabel ? 'items-end' : 'items-center',
+                itemLayout === 'stacked'
+                  ? 'grid flex-1 gap-1 leading-none'
+                  : 'flex flex-1 justify-between leading-none',
+
+                itemLayout === 'inline' &&
+                  (nestLabel ? 'items-end' : 'items-center'),
               )
             "
           >
+            <!-- Label -->
+
             <div class="grid gap-1.5">
               <div v-if="nestLabel" class="font-medium">
                 {{ tooltipLabel }}
               </div>
+
               <span class="text-muted-foreground">
                 {{ itemConfig?.label || value }}
               </span>
             </div>
+
+            <!-- Value -->
+
             <span
-              v-if="value"
-              class="text-foreground font-mono font-medium tabular-nums"
+              v-if="value !== null && value !== undefined"
+              class="text-foreground whitespace-nowrap font-mono font-medium tabular-nums"
             >
-              {{ value.toLocaleString() }}
+              {{
+                valueFormatter
+                  ? valueFormatter(value, key)
+                  : typeof value?.toLocaleString === "function"
+                    ? value.toLocaleString()
+                    : value
+              }}
             </span>
           </div>
         </div>
