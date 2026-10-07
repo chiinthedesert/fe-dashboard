@@ -14,8 +14,6 @@ Frontend cho hệ thống dashboard quản trị **Python Master**, được xâ
 ## Trạng thái hiện tại
 ### Vấn đề còn cần BE
 
-Backend API, dữ liệu demo và chức năng đăng nhập quản trị viên sẽ được tích hợp sau. Thắc mắc hỏi tự thân search, hỏi AI hoặc hỏi Chí (hiện tại cũng chả biết gì, đang cố)
-
 - [x] Dashboard Vận Hành
    - [x] Tổng Quan
     - [x] Theo Khu Vực
