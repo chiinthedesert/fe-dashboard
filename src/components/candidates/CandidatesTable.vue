@@ -251,15 +251,6 @@ function boardVariant(
   return "outline";
 }
 
-function statusVariant(
-  key: string | null | undefined,
-): "default" | "secondary" | "outline" | "destructive" {
-  if (key === "DA_DONG_PHI") return "default";
-  if (key === "CHO_HO_SO") return "outline";
-  if (key === "CHUA_DONG_PHI") return "destructive";
-  return "secondary";
-}
-
 function sourceLabel(value: string | null | undefined): string {
   if (value === "DATA") return "Data";
   if (value === "GGFORM") return "Google Form";
@@ -348,7 +339,7 @@ watch(
 </script>
 
 <template>
-  <Card class="candidate-management min-w-0 w-full gap-4 py-4">
+  <Card class="min-w-0 w-full gap-4 py-4">
     <CardHeader class="border-b border-border px-4 pb-4">
       <CardTitle>Bảng dữ liệu thí sinh tập trung</CardTitle>
       <CardDescription>
@@ -804,14 +795,14 @@ watch(
 
                   <Badge
                     v-else-if="cell.column.id === 'trangThai'"
-                    :variant="statusVariant(row.original.trangThaiKey)"
-                    class="gap-1.5 border-0 px-2 py-1"
+                    variant="outline"
+                    class="gap-1.5 border-transparent px-2 py-1"
                     :class="{
-                      'candidate-status-paid':
+                      'bg-chart-2/15 text-chart-2':
                         row.original.trangThaiKey === 'DA_DONG_PHI',
-                      'candidate-status-pending':
+                      'bg-chart-3/20 text-chart-3':
                         row.original.trangThaiKey === 'CHO_HO_SO',
-                      'candidate-status-unpaid':
+                      'bg-destructive/15 text-destructive':
                         row.original.trangThaiKey === 'CHUA_DONG_PHI',
                     }"
                   >
@@ -917,49 +908,3 @@ watch(
     </CardContent>
   </Card>
 </template>
-
-<style scoped>
-.dark .candidate-management {
-  --card: #07111d;
-  --card-foreground: #e7edf5;
-  --foreground: #e7edf5;
-  --border: #17283a;
-  --muted: #0e1b2a;
-  --muted-foreground: #8296ad;
-  --input: #12253a;
-  --accent: #14283d;
-  --accent-foreground: #e7edf5;
-  --primary: #4b8ffb;
-  --primary-foreground: #ffffff;
-}
-
-.dark .candidate-management :deep([data-slot="table-head"]) {
-  border-color: var(--border);
-  background: #081320;
-  color: #dce7f4;
-  font-weight: 600;
-}
-
-.dark .candidate-management :deep([data-slot="table-row"]) {
-  border-color: var(--border);
-}
-
-.dark .candidate-management :deep([data-slot="table-row"]:hover) {
-  background: #0d1b2a;
-}
-
-.dark .candidate-management :deep(.candidate-status-paid) {
-  background: rgb(0 212 154 / 15%);
-  color: #00d49a;
-}
-
-.dark .candidate-management :deep(.candidate-status-pending) {
-  background: rgb(255 176 0 / 18%);
-  color: #ffb000;
-}
-
-.dark .candidate-management :deep(.candidate-status-unpaid) {
-  background: rgb(255 107 107 / 15%);
-  color: #ff6b6b;
-}
-</style>
