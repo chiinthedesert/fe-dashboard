@@ -12,6 +12,7 @@ import {
   getCandidates,
   getCandidatePartners,
   getCandidateProvinces,
+  getCandidateSchools,
   getCandidateSales,
   getCandidateSources,
   createCandidate,
@@ -34,12 +35,14 @@ const keyword = ref("");
 const searchKeyword = ref("");
 
 const selectedStatus = ref("");
+const selectedSchool = ref("");
 const selectedBoard = ref("");
 const selectedProvince = ref("");
 const selectedSource = ref("");
 const selectedPartner = ref("");
 
 const provinces = ref<string[]>([]);
+const schools = ref<string[]>([]);
 const sources = ref<string[]>([]);
 const partners = ref<string[]>([]);
 const sales = ref<StaffOptionResponse[]>([]);
@@ -105,15 +108,21 @@ onMounted(async () => {
 
   const results = await Promise.allSettled([
     getCandidateProvinces(),
+    getCandidateSchools(),
     getCandidateSources(),
     getCandidatePartners(),
     getCandidateSales(),
   ]);
 
-  const [provinceResult, sourceResult, partnerResult, saleResult] = results;
+  const [provinceResult, schoolResult, sourceResult, partnerResult, saleResult] =
+    results;
 
   if (provinceResult.status === "fulfilled") {
     provinces.value = provinceResult.value;
+  }
+
+  if (schoolResult.status === "fulfilled") {
+    schools.value = schoolResult.value;
   }
 
   if (sourceResult.status === "fulfilled") {
@@ -139,6 +148,7 @@ onMounted(async () => {
 function currentApiFilter(): CandidateFilter {
   return {
     keyword: searchKeyword.value || undefined,
+    truongHoc: selectedSchool.value || undefined,
     tinhThanh: selectedProvince.value || undefined,
     trangThai: selectedStatus.value || undefined,
     nguonDangKy: selectedSource.value || undefined,
@@ -239,6 +249,7 @@ watch(
     pageSize,
     searchKeyword,
     selectedStatus,
+    selectedSchool,
     selectedBoard,
     selectedProvince,
     selectedSource,
@@ -298,6 +309,11 @@ function changeStatus(value: string) {
   selectedStatus.value = value;
 }
 
+function changeSchool(value: string) {
+  page.value = 1;
+  selectedSchool.value = value;
+}
+
 function changeBoard(value: string) {
   page.value = 1;
   selectedBoard.value = value;
@@ -321,6 +337,7 @@ function changePartner(value: string) {
 function resetFilters() {
   page.value = 1;
   selectedStatus.value = "";
+  selectedSchool.value = "";
   selectedBoard.value = "";
   selectedProvince.value = "";
   selectedSource.value = "";
@@ -525,11 +542,13 @@ async function handleBulkDeleteCandidates() {
       :candidates="candidates"
       :keyword="keyword"
       :status="selectedStatus"
+      :school="selectedSchool"
       :board="selectedBoard"
       :province="selectedProvince"
       :source="selectedSource"
       :partner="selectedPartner"
       :provinces="provinces"
+      :schools="schools"
       :sources="sources"
       :partners="partners"
       :filters-loading="filtersLoading"
@@ -545,6 +564,7 @@ async function handleBulkDeleteCandidates() {
       :sort-dir="sortDir"
       @update:keyword="keyword = $event"
       @update:status="changeStatus"
+      @update:school="changeSchool"
       @update:board="changeBoard"
       @update:province="changeProvince"
       @update:source="changeSource"
