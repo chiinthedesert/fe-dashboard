@@ -65,12 +65,14 @@ const props = defineProps<{
 
   keyword: string;
   status: string;
+  school: string;
   board: string;
   province: string;
   source: string;
   partner: string;
 
   provinces: string[];
+  schools: string[];
   sources: string[];
   partners: string[];
   filtersLoading: boolean;
@@ -92,6 +94,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   "update:keyword": [value: string];
   "update:status": [value: string];
+  "update:school": [value: string];
   "update:board": [value: string];
   "update:province": [value: string];
   "update:source": [value: string];
@@ -115,13 +118,24 @@ const filtersOpen = ref(false);
 
 const activeFilterCount = computed(
   () =>
-    [props.status, props.board, props.province, props.source, props.partner].filter(
-      Boolean,
-    ).length,
+    [
+      props.status,
+      props.school,
+      props.board,
+      props.province,
+      props.source,
+      props.partner,
+    ].filter(Boolean).length,
 );
 
 const normalizedProvinces = computed(() =>
   [...new Set(props.provinces.map((value) => value.trim()).filter(Boolean))].sort(
+    (a, b) => a.localeCompare(b, "vi"),
+  ),
+);
+
+const normalizedSchools = computed(() =>
+  [...new Set(props.schools.map((value) => value.trim()).filter(Boolean))].sort(
     (a, b) => a.localeCompare(b, "vi"),
   ),
 );
@@ -207,6 +221,9 @@ const table = useTable({
       doiTac: false,
       assignedSaleName: false,
       soTien: false,
+      tinhThanh: false,
+      bangDau: false,
+      ngayDangKy: false,
     },
   },
 });
@@ -232,15 +249,6 @@ function boardVariant(
   if (["bảng a", "table_a", "a"].includes(normalized)) return "default";
   if (["bảng b", "table_b", "b"].includes(normalized)) return "secondary";
   return "outline";
-}
-
-function statusVariant(
-  key: string | null | undefined,
-): "default" | "secondary" | "outline" | "destructive" {
-  if (key === "DA_DONG_PHI") return "default";
-  if (key === "CHO_HO_SO") return "outline";
-  if (key === "CHUA_DONG_PHI") return "destructive";
-  return "secondary";
 }
 
 function sourceLabel(value: string | null | undefined): string {
@@ -332,17 +340,17 @@ watch(
 
 <template>
   <Card class="min-w-0 w-full gap-4 py-4">
-    <CardHeader class="px-4">
+    <CardHeader class="border-b border-border px-4 pb-4">
       <CardTitle>Bảng dữ liệu thí sinh tập trung</CardTitle>
       <CardDescription>
         Quản lý toàn bộ hồ sơ thí sinh dự thi Python Master.
       </CardDescription>
     </CardHeader>
 
-    <CardContent class="min-w-0 space-y-4 px-4">
+    <CardContent class="min-w-0 space-y-4 px-4 pt-0">
       <div class="@container min-w-0">
         <div
-          class="grid min-w-0 grid-cols-2 gap-3 @[40rem]:grid-cols-3 @[64rem]:grid-cols-[minmax(14rem,1fr)_auto_10rem_auto_auto] @[64rem]:items-center"
+          class="grid min-w-0 grid-cols-2 gap-3 @[40rem]:grid-cols-3 @[64rem]:grid-cols-[minmax(14rem,1fr)_10rem_minmax(10rem,14rem)_auto_auto_auto] @[64rem]:items-center"
         >
           <div class="relative col-span-2 min-w-0 @[64rem]:col-span-1">
             <Search
@@ -356,6 +364,59 @@ watch(
               @update:model-value="emit('update:keyword', String($event ?? ''))"
             />
           </div>
+
+          <Select
+            :model-value="status || 'all'"
+            @update:model-value="
+              (value) =>
+                emit(
+                  'update:status',
+                  value === 'all' ? '' : String(value ?? ''),
+                )
+            "
+          >
+            <SelectTrigger
+              class="w-full min-w-0"
+              aria-label="Lọc theo trạng thái"
+            >
+              <SelectValue placeholder="Tất cả trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="DA_DONG_PHI">Đã đóng phí</SelectItem>
+              <SelectItem value="CHO_HO_SO">Chờ hồ sơ</SelectItem>
+              <SelectItem value="CHUA_DONG_PHI">Chưa đóng phí</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            :model-value="school || 'all'"
+            :disabled="filtersLoading"
+            @update:model-value="
+              (value) =>
+                emit(
+                  'update:school',
+                  value === 'all' ? '' : String(value ?? ''),
+                )
+            "
+          >
+            <SelectTrigger
+              class="w-full min-w-0"
+              aria-label="Lọc theo trường học"
+            >
+              <SelectValue placeholder="Tất cả trường học" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trường học</SelectItem>
+              <SelectItem
+                v-for="item in normalizedSchools"
+                :key="item"
+                :value="item"
+              >
+                {{ item }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
 
           <Button
             type="button"
@@ -377,40 +438,6 @@ watch(
               :class="{ 'rotate-180': filtersOpen }"
             />
           </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger as-child>
-              <Button
-                type="button"
-                variant="outline"
-                class="w-full min-w-0 justify-between gap-2 px-3 font-normal"
-              >
-                <span class="min-w-0 truncate text-left">Hiển thị cột</span>
-                <ChevronDown class="size-4 shrink-0 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent
-              align="start"
-              :side-offset="4"
-              class="w-max min-w-(--reka-dropdown-menu-trigger-width) max-w-[calc(100vw-1rem)]"
-            >
-              <DropdownMenuCheckboxItem
-                v-for="column in table
-                  .getAllLeafColumns()
-                  .filter((column) => column.getCanHide())"
-                :key="column.id"
-                :model-value="column.getIsVisible()"
-                class="pr-8 pl-2 [&>span:first-child]:right-2 [&>span:first-child]:left-auto [&_svg]:size-4 [&_svg]:text-muted-foreground"
-                @update:model-value="
-                  (value) => column.toggleVisibility(!!value)
-                "
-                @select.prevent
-              >
-                {{ column.columnDef.header }}
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           <Button
             type="button"
@@ -444,29 +471,8 @@ watch(
       <div
         id="candidate-filters"
         v-show="filtersOpen"
-        class="grid min-w-0 grid-cols-1 gap-3 rounded-md border bg-muted/30 p-3 sm:grid-cols-2 lg:grid-cols-5"
+        class="grid min-w-0 grid-cols-1 gap-3 rounded-md border bg-muted/30 p-3 sm:grid-cols-2 lg:grid-cols-4"
       >
-        <Select
-          :model-value="status || 'all'"
-          @update:model-value="
-            (value) =>
-              emit(
-                'update:status',
-                value === 'all' ? '' : String(value ?? ''),
-              )
-          "
-        >
-          <SelectTrigger class="w-full min-w-0" aria-label="Lọc theo trạng thái">
-            <SelectValue placeholder="Trạng thái" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="DA_DONG_PHI">Đã đóng phí</SelectItem>
-            <SelectItem value="CHO_HO_SO">Chờ hồ sơ</SelectItem>
-            <SelectItem value="CHUA_DONG_PHI">Chưa đóng phí</SelectItem>
-          </SelectContent>
-        </Select>
-
         <Select
           :model-value="board || 'all'"
           @update:model-value="
@@ -564,7 +570,7 @@ watch(
           </SelectContent>
         </Select>
 
-        <div class="flex items-center sm:col-span-2 lg:col-span-5">
+        <div class="flex items-center gap-2 sm:col-span-2 lg:col-span-4">
           <Button
             v-if="activeFilterCount"
             type="button"
@@ -575,9 +581,43 @@ watch(
             Xóa bộ lọc
           </Button>
 
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button
+                type="button"
+                variant="outline"
+                class="ml-auto gap-2 px-3 font-normal"
+              >
+                <span class="truncate text-left">Hiển thị cột</span>
+                <ChevronDown class="size-4 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+              align="end"
+              :side-offset="4"
+              class="w-max min-w-(--reka-dropdown-menu-trigger-width) max-w-[calc(100vw-1rem)]"
+            >
+              <DropdownMenuCheckboxItem
+                v-for="column in table
+                  .getAllLeafColumns()
+                  .filter((column) => column.getCanHide())"
+                :key="column.id"
+                :model-value="column.getIsVisible()"
+                class="pr-8 pl-2 [&>span:first-child]:right-2 [&>span:first-child]:left-auto [&_svg]:size-4 [&_svg]:text-muted-foreground"
+                @update:model-value="
+                  (value) => column.toggleVisibility(!!value)
+                "
+                @select.prevent
+              >
+                {{ column.columnDef.header }}
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <p
             v-if="board"
-            class="ml-auto text-xs text-muted-foreground"
+            class="text-xs text-muted-foreground"
           >
             Bảng đấu được lọc ở frontend vì API chưa có tham số tương ứng; bỏ lọc này để xuất Excel.
           </p>
@@ -755,8 +795,22 @@ watch(
 
                   <Badge
                     v-else-if="cell.column.id === 'trangThai'"
-                    :variant="statusVariant(row.original.trangThaiKey)"
+                    variant="outline"
+                    class="gap-1.5 border-transparent px-2 py-1"
+                    :class="{
+                      'bg-chart-2/15 text-chart-2':
+                        row.original.trangThaiKey === 'DA_DONG_PHI',
+                      'bg-chart-3/20 text-chart-3':
+                        row.original.trangThaiKey === 'CHO_HO_SO',
+                      'bg-destructive/15 text-destructive':
+                        row.original.trangThaiKey === 'CHUA_DONG_PHI',
+                    }"
                   >
+                    <span
+                      v-if="row.original.trangThaiKey"
+                      class="size-1.5 rounded-full bg-current"
+                      aria-hidden="true"
+                    />
                     {{ row.original.trangThai || "—" }}
                   </Badge>
 
