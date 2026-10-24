@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://pythonmasterbackend-production.up.railway.app/api/:path*"
+      "destination": "https://pythonmaster-backend-2.onrender.com"
     },
     {
       "source": "/(.*)",
