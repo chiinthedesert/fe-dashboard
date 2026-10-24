@@ -20,7 +20,7 @@ export default defineConfig({
 
     proxy: {
       "/api": {
-        target: "https://pythonmasterbackend-production.up.railway.app",
+        target: "https://pythonmaster-backend-2.onrender.com",
         changeOrigin: true,
         secure: true,
       },
