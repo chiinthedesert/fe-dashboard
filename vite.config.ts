@@ -20,7 +20,7 @@ export default defineConfig({
 
     proxy: {
       "/api": {
-        target: "https://pythonmaster-backend-2.onrender.com",
+        target: "https://pythonmaster-backend-h4bu.onrender.com",
         changeOrigin: true,
         secure: true,
       },
